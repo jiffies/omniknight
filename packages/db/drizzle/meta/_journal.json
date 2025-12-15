@@ -22,6 +22,34 @@
       "when": 1765733257116,
       "tag": "0002_loving_shotgun",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1765780650158,
+      "tag": "0003_abnormal_metal_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1765784136246,
+      "tag": "0004_high_namora",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1765816167126,
+      "tag": "0005_huge_ronan",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1765817185169,
+      "tag": "0006_rare_medusa",
+      "breakpoints": true
     }
   ]
 }

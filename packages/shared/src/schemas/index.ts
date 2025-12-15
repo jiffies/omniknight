@@ -6,9 +6,12 @@ export const createGroupSchema = z.object({
   title: z.string().min(1),
   username: z.string().optional(),
   type: z.enum(['group', 'channel', 'supergroup', 'forum']),
+  accountId: z.number(), // 账号ID（必填）
   topicId: z.number().optional(),
   parentGroupId: z.number().optional(),
   isTopic: z.boolean().default(false),
+  groupName: z.string().optional(), // 父 group/forum 的名称
+  topicName: z.string().optional(), // topic 的名称（仅当 isTopic=true 时有值）
 });
 
 export const updateGroupSchema = z.object({
@@ -16,6 +19,7 @@ export const updateGroupSchema = z.object({
   summaryEnabled: z.boolean().optional(),
   summaryInterval: z.number().min(1).max(24).optional(),
   minMessagesForSummary: z.number().min(1).optional(),
+  customPrompt: z.string().optional(), // 用户自定义提示词
 });
 
 // 总结相关 Schema
@@ -43,4 +47,13 @@ export const updateFilterRuleSchema = z.object({
   config: z.record(z.unknown()).optional(),
   isEnabled: z.boolean().optional(),
   priority: z.number().optional(),
+});
+
+// 账号相关 Schema
+export const createAccountSchema = z.object({
+  phoneNumber: z.string().min(1),
+});
+
+export const updateAccountSchema = z.object({
+  isActive: z.boolean().optional(),
 });

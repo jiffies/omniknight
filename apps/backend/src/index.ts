@@ -2,7 +2,7 @@ import { serve } from '@hono/node-server';
 import app from './routes/index';
 import { env } from './config/env';
 import { logger } from './utils/logger';
-import { telegramService } from './services/telegram/client';
+import { telegramAccountManager } from './services/telegram/account-manager';
 import { schedulerService } from './services/scheduler/scheduler';
 
 async function main() {
@@ -11,26 +11,24 @@ async function main() {
     logger.info('🚀 开始启动 Omniknight 服务');
     logger.info('========================================');
 
-    // 1. 初始化 Telegram 客户端
-    logger.info('[步骤 1/5] 正在初始化 Telegram 客户端...');
-    await telegramService.initialize();
-    logger.info('[步骤 1/5] ✅ Telegram 客户端初始化完成');
-
-    // 2. 检查是否已认证
-    logger.info('[步骤 2/5] 正在连接 Telegram...');
+    // 1. 初始化 Telegram 账号管理器（懒加载模式）
+    logger.info('[步骤 1/5] 正在初始化 Telegram 账号管理器...');
     try {
-      await telegramService.connect();
-      logger.info('[步骤 2/5] ✅ Telegram 客户端已连接');
+      await telegramAccountManager.initializeAllAccounts();
+      logger.info('[步骤 1/5] ✅ Telegram 账号管理器已就绪（懒加载模式）');
 
-      // 3. 开始监听消息
-      logger.info('[步骤 3/5] 检查消息监听配置...');
-      await telegramService.startListening();
-      logger.info('[步骤 3/5] ✅ 消息监听配置完成(使用按需拉取模式)');
+      // 可选：预连接有活跃群组的账号（提升首次响应速度）
+      // 如果不需要预连接，可以注释掉下面这行
+      // await telegramAccountManager.connectAccountsWithActiveGroups();
     } catch (error) {
-      logger.warn('[步骤 2/5] ⚠️ Telegram 未认证，需要先进行认证');
-      logger.info('💡 请运行 "pnpm setup" 完成认证');
-      // 如果未认证，仍然启动 API 服务器，以便通过 API 完成认证
+      logger.warn('[步骤 1/5] ⚠️ Telegram 账号管理器初始化失败');
+      logger.info('💡 请通过前端或 API 添加 Telegram 账号');
+      // 即使初始化失败，仍然启动服务器
     }
+
+    // 2-3. 跳过（改用多账号管理）
+    logger.info('[步骤 2/5] ✅ 使用多账号管理模式');
+    logger.info('[步骤 3/5] ✅ 消息监听配置完成(使用按需拉取模式)');
 
     // 4. 启动定时调度器
     logger.info('[步骤 4/5] 正在启动定时调度器...');
@@ -61,14 +59,16 @@ async function main() {
 }
 
 // 优雅关闭
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   logger.info('收到 SIGINT 信号，正在关闭服务...');
+  await telegramAccountManager.shutdown();
   schedulerService.stop();
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   logger.info('收到 SIGTERM 信号，正在关闭服务...');
+  await telegramAccountManager.shutdown();
   schedulerService.stop();
   process.exit(0);
 });

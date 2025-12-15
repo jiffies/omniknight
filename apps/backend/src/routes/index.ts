@@ -5,6 +5,7 @@ import summariesRoute from './summaries';
 import telegramRoute from './telegram';
 import filterRulesRoute from './filter-rules';
 import systemConfigRoute from './system-config';
+import accountsRoute from './accounts';
 
 const app = new Hono();
 
@@ -17,6 +18,7 @@ app.get('/health', (c) => {
 });
 
 // 注册路由
+app.route('/api/accounts', accountsRoute);
 app.route('/api/groups', groupsRoute);
 app.route('/api/summaries', summariesRoute);
 app.route('/api/telegram', telegramRoute);

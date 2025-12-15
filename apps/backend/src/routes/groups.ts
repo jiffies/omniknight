@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { db, groups, summaries } from '@omniknight/db';
+import { db, groups, summaries, telegramAccounts } from '@omniknight/db';
 import { createGroupSchema, updateGroupSchema } from '@omniknight/shared';
 import { eq, sql } from 'drizzle-orm';
 import { logger } from '../utils/logger';
@@ -10,6 +10,9 @@ const app = new Hono();
 // GET /api/groups - 获取所有群组列表
 app.get('/', async (c) => {
   const allGroups = await db.query.groups.findMany({
+    with: {
+      account: true, // 关联查询账号信息
+    },
     orderBy: (groups, { desc }) => [desc(groups.updatedAt)],
   });
 
@@ -26,6 +29,15 @@ app.get('/', async (c) => {
         ...group,
         messageCount: 0, // 消息不再存储
         summaryCount: summaryCountResult?.count || 0,
+        // 添加账号信息
+        accountInfo: group.account
+          ? {
+              id: group.account.id,
+              phoneNumber: group.account.phoneNumber,
+              username: group.account.username,
+              isConnected: group.account.isConnected,
+            }
+          : null,
       };
     })
   );
@@ -35,7 +47,7 @@ app.get('/', async (c) => {
 
 // GET /api/groups/:id - 获取单个群组详情
 app.get('/:id', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = Number.parseInt(c.req.param('id'));
 
   const group = await db.query.groups.findFirst({
     where: eq(groups.id, id),
@@ -63,6 +75,33 @@ app.post(
       const data = c.req.valid('json');
       logger.info('群组数据验证通过', { data });
 
+      // 验证账号存在
+      const account = await db.query.telegramAccounts.findFirst({
+        where: eq(telegramAccounts.id, data.accountId),
+      });
+
+      if (!account) {
+        logger.error('账号不存在', { accountId: data.accountId });
+        return c.json({ error: 'Account not found' }, 404);
+      }
+
+      // 检查群组是否已存在（基于 telegram_id + topic_id 组合）
+      const existingGroup = await db.query.groups.findFirst({
+        where: (groups, { eq, and, isNull }) =>
+          data.topicId
+            ? and(eq(groups.telegramId, data.telegramId), eq(groups.topicId, data.topicId))
+            : and(eq(groups.telegramId, data.telegramId), isNull(groups.topicId)),
+      });
+
+      if (existingGroup) {
+        logger.warn('群组已存在', {
+          telegramId: data.telegramId,
+          topicId: data.topicId,
+          groupId: existingGroup.id,
+        });
+        return c.json({ error: 'Group already exists', data: existingGroup }, 409);
+      }
+
       const [group] = await db
         .insert(groups)
         .values({
@@ -72,7 +111,7 @@ app.post(
         })
         .returning();
 
-      logger.info('群组已创建', { groupId: group.id, title: group.title });
+      logger.info('群组已创建', { groupId: group.id, title: group.title, accountId: data.accountId });
 
       return c.json({ data: group }, 201);
     } catch (error) {
@@ -84,7 +123,7 @@ app.post(
 
 // PATCH /api/groups/:id - 更新群组配置
 app.patch('/:id', zValidator('json', updateGroupSchema), async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = Number.parseInt(c.req.param('id'));
   const updates = c.req.valid('json');
 
   const [updatedGroup] = await db
@@ -107,7 +146,7 @@ app.patch('/:id', zValidator('json', updateGroupSchema), async (c) => {
 
 // DELETE /api/groups/:id - 删除群组
 app.delete('/:id', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = Number.parseInt(c.req.param('id'));
 
   await db.delete(groups).where(eq(groups.id, id));
 

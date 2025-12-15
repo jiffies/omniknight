@@ -2,9 +2,10 @@ import { db, groups, summaries } from '@omniknight/db';
 import { eq } from 'drizzle-orm';
 import { logger } from '../../utils/logger';
 import { generateCompletion } from './client';
-import { buildSummaryPrompt, SYSTEM_PROMPT } from './prompt-builder';
-import { telegramService } from '../telegram/client';
+import { buildSummaryPrompt, buildSystemPrompt } from './prompt-builder';
+import { telegramAccountManager } from '../telegram/account-manager';
 import { fetchMessagesWithRateLimit } from '../telegram/message-fetcher';
+import { messageCache } from '../telegram/message-cache';
 
 export async function generateSummary(
   groupId: number,
@@ -35,54 +36,67 @@ export async function generateSummary(
     telegramId: group.telegramId
   });
 
-  // 2. 获取 Telegram 客户端
-  logger.info('[2/10] 正在获取 Telegram 客户端...');
-  const client = telegramService.getClient();
-  logger.info('[2/10] ✅ Telegram 客户端已就绪');
+  // 2. 检查消息缓存
+  logger.info('[2/10] 正在检查消息缓存...');
+  let fetchedMessages = messageCache.get(groupId, periodStart, periodEnd);
 
-  // 3. 拉取消息（带限流保护）
-  const fetchStartTime = Date.now();
-  logger.info('[3/10] 开始拉取消息(带自适应限流保护)', {
-    groupId,
-    telegramId: group.telegramId,
-    period: `${periodStart.toISOString()} ~ ${periodEnd.toISOString()}`,
-    topicId: group.topicId ?? '无(普通群组)',
-  });
+  if (fetchedMessages) {
+    logger.info('[2/10] ✅ 使用缓存的消息');
+    fetchDuration = 0; // 使用缓存，拉取时间为0
+  } else {
+    // 3. 获取 Telegram 客户端（基于群组关联的账号）
+    logger.info('[3/10] 正在获取 Telegram 客户端...', { accountId: group.accountId });
+    const clientWrapper = await telegramAccountManager.getClient(group.accountId);
+    const client = clientWrapper.getClient();
+    logger.info('[3/10] ✅ Telegram 客户端已就绪', { accountId: group.accountId });
 
-  const fetchedMessages = await fetchMessagesWithRateLimit(
-    client,
-    group.telegramId,
-    periodStart,
-    periodEnd,
-    onProgress,
-    group.topicId ?? undefined // 🔥 如果是Forum Topic，传递topicId
-  );
+    // 4. 拉取消息（带限流保护）
+    const fetchStartTime = Date.now();
+    logger.info('[4/10] 开始拉取消息(带自适应限流保护)', {
+      groupId,
+      telegramId: group.telegramId,
+      period: `${periodStart.toISOString()} ~ ${periodEnd.toISOString()}`,
+      topicId: group.topicId ?? '无(普通群组)',
+    });
 
-  fetchDuration = Date.now() - fetchStartTime;
-  logger.info('[3/10] ✅ 消息拉取完成', {
-    拉取数量: fetchedMessages.length,
-    耗时: `${(fetchDuration / 1000).toFixed(1)}秒`,
-  });
+    fetchedMessages = await fetchMessagesWithRateLimit(
+      client,
+      group.telegramId,
+      periodStart,
+      periodEnd,
+      onProgress,
+      group.topicId ?? undefined // 🔥 如果是Forum Topic，传递topicId
+    );
 
-  // 4. 过滤出未被过滤的消息
-  logger.info('[4/10] 正在应用消息过滤规则...');
+    fetchDuration = Date.now() - fetchStartTime;
+    logger.info('[4/10] ✅ 消息拉取完成', {
+      拉取数量: fetchedMessages.length,
+      耗时: `${(fetchDuration / 1000).toFixed(1)}秒`,
+    });
+
+    // 5. 缓存拉取的消息（10分钟）
+    messageCache.set(groupId, periodStart, periodEnd, fetchedMessages);
+  }
+
+  // 6. 过滤出未被过滤的消息
+  logger.info('[6/10] 正在应用消息过滤规则...');
   const validMessages = fetchedMessages.filter((msg) => !msg.isFiltered);
   const filteredCount = fetchedMessages.length - validMessages.length;
-  logger.info('[4/10] ✅ 消息过滤完成', {
+  logger.info('[6/10] ✅ 消息过滤完成', {
     总消息数: fetchedMessages.length,
     有效消息: validMessages.length,
     已过滤: filteredCount,
     过滤率: `${((filteredCount / fetchedMessages.length) * 100).toFixed(1)}%`,
   });
 
-  // 5. 检查消息数量阈值
-  logger.info('[5/10] 检查消息数量阈值...', {
+  // 7. 检查消息数量阈值
+  logger.info('[7/10] 检查消息数量阈值...', {
     有效消息数: validMessages.length,
     最小阈值: group.minMessagesForSummary,
   });
 
   if (validMessages.length < group.minMessagesForSummary) {
-    logger.warn('[5/10] ⚠️ 消息数量不足，跳过总结', {
+    logger.warn('[7/10] ⚠️ 消息数量不足，跳过总结', {
       groupId,
       messageCount: validMessages.length,
       threshold: group.minMessagesForSummary,
@@ -90,34 +104,31 @@ export async function generateSummary(
     logger.info('========================================');
     return null;
   }
-  logger.info('[5/10] ✅ 消息数量满足要求');
+  logger.info('[7/10] ✅ 消息数量满足要求');
 
-  // 6. Token 控制：简单采样（已禁用，使用全量消息）
-  logger.info('[6/10] Token 控制策略: 使用全量消息(采样已禁用)');
-
-  // 7. 构建 Prompt
-  logger.info('[7/10] 正在构建 AI Prompt...');
+  // 8. 构建 Prompt
+  logger.info('[8/10] 正在构建 AI Prompt...');
   const userPrompt = buildSummaryPrompt(
     group,
     validMessages as any, // fetchedMessages 与 Message 类型兼容
     periodStart,
     periodEnd
   );
-  logger.info('[7/10] ✅ Prompt 构建完成', {
+  logger.info('[8/10] ✅ Prompt 构建完成', {
     消息数量: validMessages.length,
     Prompt长度: userPrompt.length,
   });
 
-  // 8. 调用 AI 生成总结
-  logger.info('[8/10] 🤖 正在调用 AI 生成总结...');
-  const aiResponse = await generateCompletion({
+  // 9. 调用 AI 生成总结（带重试，指数退避）
+  logger.info('[9/10] 🤖 正在调用 AI 生成总结（支持自动重试）...');
+  const aiResponse = await generateCompletionWithRetry({
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: buildSystemPrompt(group) },
       { role: 'user', content: userPrompt },
     ],
     temperature: 0.7,
   });
-  logger.info('[8/10] ✅ AI 生成完成', {
+  logger.info('[9/10] ✅ AI 生成完成', {
     模型: aiResponse.model,
     Token消耗: aiResponse.tokensUsed,
     内容长度: aiResponse.content.length,
@@ -203,4 +214,63 @@ function sampleMessages<T extends { id: number; date: Date }>(
 function extractTitle(markdown: string): string | null {
   const match = markdown.match(/^#\s+(.+)$/m);
   return match?.[1]?.trim() || null;
+}
+
+/**
+ * 延迟函数
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * 带重试的 AI 生成函数（指数退避）
+ */
+async function generateCompletionWithRetry(
+  params: Parameters<typeof generateCompletion>[0],
+  maxRetries = 5
+) {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      logger.info(`AI 调用尝试 ${attempt}/${maxRetries}`);
+      const result = await generateCompletion(params);
+
+      if (attempt > 1) {
+        logger.info('✅ 重试成功', { attempt, maxRetries });
+      }
+
+      return result;
+    } catch (error) {
+      lastError = error as Error;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      logger.warn(`AI 调用失败 (尝试 ${attempt}/${maxRetries})`, {
+        error: errorMessage,
+        attempt,
+        maxRetries,
+      });
+
+      // 如果还有重试机会，使用指数退避
+      if (attempt < maxRetries) {
+        const delayMs = Math.min(1000 * (2 ** (attempt - 1)), 30000); // 最大等待30秒
+        logger.info(`⏳ ${delayMs}ms 后重试...`, {
+          nextAttempt: attempt + 1,
+          delayMs,
+          formula: `min(1000 * 2^${attempt - 1}, 30000)`,
+        });
+
+        await sleep(delayMs);
+      }
+    }
+  }
+
+  // 所有重试都失败
+  logger.error('❌ AI 调用失败，已达到最大重试次数', {
+    maxRetries,
+    lastError: lastError?.message,
+  });
+
+  throw lastError || new Error('AI generation failed after all retries');
 }

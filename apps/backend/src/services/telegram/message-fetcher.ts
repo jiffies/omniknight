@@ -51,15 +51,22 @@ export async function fetchMessagesWithRateLimit(
   const rateLimiter = new RateLimiter();
   const allMessages: FetchedMessage[] = [];
   let currentDate = endTime;
+  let lastMessageId: number | undefined = undefined; // 用于Forum Topics的分页
   let totalBatches = 0;
   let floodWaitCount = 0;
   const startTimestamp = Date.now();
 
-  logger.info('开始拉取消息', {
+  logger.info('========================================');
+  logger.info('🚀 开始拉取消息', {
     groupId,
-    period: `${startTime.toISOString()} ~ ${endTime.toISOString()}`,
+    目标时间范围: {
+      起始时间: startTime.toISOString(),
+      结束时间: endTime.toISOString(),
+      时间跨度: `${Math.round((endTime.getTime() - startTime.getTime()) / 3600000)}小时`,
+    },
     initialBatchSize: rateLimiter.getBatchSize(),
   });
+  logger.info('========================================');
 
   // 先获取频道实体（Telegram 要求）
   let entity: Api.TypeEntityLike;
@@ -86,29 +93,57 @@ export async function fetchMessagesWithRateLimit(
       const waitTime = rateLimiter.calculateWait();
 
       // 拉取一批消息
-      logger.debug('拉取批次', {
-        batchNum: totalBatches + 1,
-        batchSize,
-        currentDate: currentDate.toISOString(),
+      logger.debug('📥 拉取批次', {
+        批次号: totalBatches + 1,
+        拉取上限: batchSize,
+        当前时间指针: currentDate.toISOString(),
+        当前消息ID指针: lastMessageId || '无',
+        目标起始时间: startTime.toISOString(),
+        是否使用Topic模式: !!topicId,
       });
 
       const messages = await client.getMessages(groupId, {
         offsetDate: Math.floor(currentDate.getTime() / 1000),
         limit: batchSize,
         reverse: false, // 从新到旧
-        ...(topicId && { replyTo: topicId }), // 🔥 如果是Topic，指定replyTo参数
+        ...(topicId ? { replyTo: topicId } : {}), // 🔥 如果是Topic，指定replyTo参数
+        ...(lastMessageId ? { offsetId: lastMessageId } : {}), // 🔥 使用消息ID分页
       });
 
       if (!messages || messages.length === 0) {
-        logger.info('没有更多消息');
+        logger.info('✅ 没有更多消息，拉取结束');
         break;
       }
+
+      // 统计消息时间范围
+      const messageDates = messages
+        .filter((msg: Api.Message) => msg.date)
+        .map((msg: Api.Message) => new Date((msg.date as number) * 1000));
+      const earliestMsgDate = messageDates.length > 0
+        ? new Date(Math.min(...messageDates.map(d => d.getTime())))
+        : null;
+      const latestMsgDate = messageDates.length > 0
+        ? new Date(Math.max(...messageDates.map(d => d.getTime())))
+        : null;
 
       // 转换和过滤消息
       const filteredByTime = messages.filter((msg: Api.Message) => {
         if (!msg.date) return false;
         const msgDate = new Date(msg.date * 1000);
         return msgDate >= startTime && msgDate <= endTime;
+      });
+
+      logger.info('📊 批次拉取结果', {
+        批次号: totalBatches + 1,
+        原始消息数: messages.length,
+        消息时间范围: earliestMsgDate && latestMsgDate
+          ? `${earliestMsgDate.toISOString()} ~ ${latestMsgDate.toISOString()}`
+          : '无时间信息',
+        最早消息时间: earliestMsgDate?.toISOString() || '无',
+        时间过滤后: filteredByTime.length,
+        是否在目标范围内: earliestMsgDate
+          ? earliestMsgDate >= startTime ? '✅ 已进入目标范围' : '⏳ 还未到达起始时间'
+          : '未知',
       });
 
       // 并行应用过滤规则
@@ -145,12 +180,11 @@ export async function fetchMessagesWithRateLimit(
       // 成功回调
       rateLimiter.onSuccess();
 
-      logger.debug('批次拉取成功', {
-        batchNum: totalBatches,
-        batchSize: messages.length,
-        processedCount: processed.length,
-        totalFetched: allMessages.length,
-        nextWait: waitTime,
+      logger.debug('✅ 批次处理完成', {
+        批次号: totalBatches,
+        应用过滤规则后: processed.length,
+        累计已拉取: allMessages.length,
+        下次等待时间: `${waitTime}ms`,
       });
 
       // 更新进度
@@ -166,11 +200,22 @@ export async function fetchMessagesWithRateLimit(
       // 等待指定时间
       await sleep(waitTime);
 
-      // 更新时间指针
+      // 更新时间指针和消息ID
       const lastMessage = messages[messages.length - 1];
       if (lastMessage?.date) {
-        currentDate = new Date(lastMessage.date * 1000);
+        const newCurrentDate = new Date(lastMessage.date * 1000);
+        const newMessageId = lastMessage.id;
+        logger.debug('⏰ 更新时间指针和消息ID', {
+          旧时间指针: currentDate.toISOString(),
+          新时间指针: newCurrentDate.toISOString(),
+          旧消息ID: lastMessageId || '无',
+          新消息ID: newMessageId,
+          距离起始时间: `${Math.round((newCurrentDate.getTime() - startTime.getTime()) / 60000)}分钟`,
+        });
+        currentDate = newCurrentDate;
+        lastMessageId = newMessageId;
       } else {
+        logger.warn('⚠️ 消息无时间信息，停止拉取');
         break;
       }
     } catch (error: unknown) {
@@ -201,17 +246,30 @@ export async function fetchMessagesWithRateLimit(
   }
 
   const duration = Date.now() - startTimestamp;
-  const filteredCount = allMessages.filter((m) => !m.isFiltered).length;
+  const validMessages = allMessages.filter((m) => !m.isFiltered);
+  const filteredOutMessages = allMessages.filter((m) => m.isFiltered);
 
-  logger.info('消息拉取完成', {
+  logger.info('========================================');
+  logger.info('🎉 消息拉取完成', {
     groupId,
-    totalMessages: allMessages.length,
-    filteredMessages: filteredCount,
-    totalBatches,
-    floodWaitCount,
-    duration: `${(duration / 1000).toFixed(1)}s`,
-    rateLimiterState: rateLimiter.getState(),
+    目标时间范围: {
+      起始: startTime.toISOString(),
+      结束: endTime.toISOString(),
+    },
+    拉取统计: {
+      总批次数: totalBatches,
+      总消息数: allMessages.length,
+      有效消息: validMessages.length,
+      被过滤消息: filteredOutMessages.length,
+      过滤率: `${((filteredOutMessages.length / allMessages.length) * 100).toFixed(1)}%`,
+    },
+    限流统计: {
+      遇到FLOOD_WAIT次数: floodWaitCount,
+      限流器状态: rateLimiter.getState(),
+    },
+    耗时: `${(duration / 1000).toFixed(1)}秒`,
   });
+  logger.info('========================================');
 
   return allMessages;
 }

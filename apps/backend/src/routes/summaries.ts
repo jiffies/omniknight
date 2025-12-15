@@ -89,6 +89,33 @@ app.get('/jobs/:id', async (c) => {
   return c.json({ data: job[0] });
 });
 
+// DELETE /api/summaries/jobs/:id - 删除任务
+app.delete('/jobs/:id', async (c) => {
+  const jobId = Number.parseInt(c.req.param('id'), 10);
+
+  try {
+    // 检查任务是否存在
+    const job = await db
+      .select()
+      .from(summaryJobs)
+      .where(eq(summaryJobs.id, jobId))
+      .limit(1);
+
+    if (!job || job.length === 0) {
+      return c.json({ error: 'Job not found' }, 404);
+    }
+
+    // 删除任务
+    await db.delete(summaryJobs).where(eq(summaryJobs.id, jobId));
+
+    logger.info('任务已删除', { jobId });
+    return c.json({ message: 'Job deleted successfully' });
+  } catch (error) {
+    logger.error('删除任务失败', error instanceof Error ? error : undefined);
+    return c.json({ error: 'Failed to delete job' }, 500);
+  }
+});
+
 // GET /api/summaries/:id - 获取总结详情
 app.get('/:id', async (c) => {
   const id = parseInt(c.req.param('id'));

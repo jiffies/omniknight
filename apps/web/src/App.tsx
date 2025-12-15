@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { Dashboard } from './pages/Dashboard';
 import { Groups } from './pages/Groups';
+import { Accounts } from './pages/Accounts';
 import { Tasks } from './pages/Tasks';
 import { Settings } from './pages/Settings';
 
@@ -45,6 +46,16 @@ export default function App() {
                       群组管理
                     </NavLink>
                     <NavLink
+                      to="/accounts"
+                      className={({ isActive }) =>
+                        isActive
+                          ? 'border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium'
+                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium'
+                      }
+                    >
+                      账号管理
+                    </NavLink>
+                    <NavLink
                       to="/tasks"
                       className={({ isActive }) =>
                         isActive
@@ -75,6 +86,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/groups" element={<Groups />} />
+              <Route path="/accounts" element={<Accounts />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/settings" element={<Settings />} />
             </Routes>

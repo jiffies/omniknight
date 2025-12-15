@@ -1,20 +1,13 @@
 import { useState } from 'react';
-import { useGroups } from '../hooks/useGroups';
 import { useFilterRules } from '../hooks/useFilterRules';
 import { useSystemConfig } from '../hooks/useSystemConfig';
 import { apiClient, handleResponse } from '../lib/api-client';
 import { AddFilterRuleDialog } from '../components/AddFilterRuleDialog';
 
 export function Settings() {
-  const { data: groupsData, isLoading, refetch } = useGroups();
   const { data: filterRulesData, refetch: refetchRules } = useFilterRules();
   const { data: systemConfigData, refetch: refetchConfig } = useSystemConfig();
 
-  const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
-    summaryInterval: 6,
-    minMessagesForSummary: 20,
-  });
   const [showAddRuleDialog, setShowAddRuleDialog] = useState(false);
   const [editingConfig, setEditingConfig] = useState(false);
   const [configFormData, setConfigFormData] = useState({
@@ -25,37 +18,8 @@ export function Settings() {
     rate_limit_wait_ms_steps: [2000, 3000, 4000, 5000],
   });
 
-  const groups = groupsData?.data || [];
   const filterRules = filterRulesData?.data || [];
   const systemConfig = systemConfigData?.data || [];
-
-  const handleEditGroup = (group: any) => {
-    setEditingGroupId(group.id);
-    setFormData({
-      summaryInterval: group.summaryInterval,
-      minMessagesForSummary: group.minMessagesForSummary,
-    });
-  };
-
-  const handleSaveGroup = async (groupId: number) => {
-    try {
-      const res = await apiClient.api.groups[':id'].$patch({
-        param: { id: groupId.toString() },
-        json: formData,
-      });
-
-      await handleResponse(res);
-      setEditingGroupId(null);
-      refetch();
-      alert('保存成功');
-    } catch (err) {
-      alert('保存失败');
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingGroupId(null);
-  };
 
   const handleToggleRule = async (ruleId: number, isEnabled: boolean) => {
     try {
@@ -144,120 +108,8 @@ export function Settings() {
       <div className="px-4 sm:px-0">
         <h2 className="text-2xl font-bold text-gray-900">设置</h2>
         <p className="mt-1 text-sm text-gray-600">
-          配置群组参数和过滤规则
+          配置过滤规则和系统参数
         </p>
-      </div>
-
-      {/* 群组配置 */}
-      <div className="mt-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">群组配置</h3>
-
-        {isLoading ? (
-          <div className="bg-white shadow sm:rounded-lg p-6 text-center text-gray-500">
-            加载中...
-          </div>
-        ) : groups.length === 0 ? (
-          <div className="bg-white shadow sm:rounded-lg p-6 text-center text-gray-500">
-            暂无群组
-          </div>
-        ) : (
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    群组名称
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    总结间隔（小时）
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    最少消息数
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    操作
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {groups.map((group: any) => (
-                  <tr key={group.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {group.title}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {editingGroupId === group.id ? (
-                        <input
-                          type="number"
-                          min="1"
-                          max="24"
-                          value={formData.summaryInterval}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              summaryInterval: Number.parseInt(e.target.value),
-                            })
-                          }
-                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
-                        />
-                      ) : (
-                        <span className="text-sm text-gray-900">
-                          {group.summaryInterval}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {editingGroupId === group.id ? (
-                        <input
-                          type="number"
-                          min="1"
-                          max="1000"
-                          value={formData.minMessagesForSummary}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              minMessagesForSummary: Number.parseInt(e.target.value),
-                            })
-                          }
-                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
-                        />
-                      ) : (
-                        <span className="text-sm text-gray-900">
-                          {group.minMessagesForSummary}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {editingGroupId === group.id ? (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleSaveGroup(group.id)}
-                            className="text-indigo-600 hover:text-indigo-900"
-                          >
-                            保存
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="text-gray-600 hover:text-gray-900"
-                          >
-                            取消
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => handleEditGroup(group)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          编辑
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
       {/* 过滤规则配置 */}

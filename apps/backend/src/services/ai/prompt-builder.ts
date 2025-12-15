@@ -10,8 +10,7 @@ export const SYSTEM_PROMPT = `你是一个 Telegram 群组内容总结助手。�
 5. **结构清晰**：使用标题、列表、引用等 Markdown 格式
 
 ## 输出格式
-[Summary] Topic: {群组名称} ({消息数量} messages)
-⚠️ AI有幻觉，总结只作参考
+[Summary] {群组名称} ({消息数量} messages)
 
 时间范围：{开始时间} 至 {结束时间}
 
@@ -31,7 +30,6 @@ export const SYSTEM_PROMPT = `你是一个 Telegram 群组内容总结助手。�
     - 建议或结论
 
 注意：
-- 不要包含"资源与链接"部分
 - 时间格式使用 YYYY-MM-DD HH:mm
 - 使用 emoji 让内容更生动
 `;
@@ -47,6 +45,11 @@ export function buildSummaryPrompt(
     return `[${time}] ${m.senderName}: ${m.text}`;
   });
 
+  // 构建用户提示词部分
+  const customPromptSection = group.customPrompt
+    ? `\n\n## 用户自定义要求\n${group.customPrompt}\n`
+    : '';
+
   return `
 请总结以下 Telegram 群组的消息内容：
 
@@ -54,14 +57,33 @@ export function buildSummaryPrompt(
 - 群组名称：${group.title}
 - 时间范围：${formatDateTime(periodStart)} 至 ${formatDateTime(periodEnd)}
 - 消息数量：${messages.length} 条
-
+${customPromptSection}
 **消息内容**
 ---
 ${formattedMessages.join('\n')}
 ---
 
-请严格按照系统提示词中的输出格式生成总结。标题使用格式：[Summary] Topic: ${group.title} (${messages.length} messages)
+请严格按照系统提示词中的输出格式生成总结${group.customPrompt ? '，同时遵循上述用户自定义要求' : ''}。标题使用格式：[Summary] Topic: ${group.title} (${messages.length} messages)
 `.trim();
+}
+
+/**
+ * 构建完整的系统提示词（包含用户自定义部分）
+ */
+export function buildSystemPrompt(group: Group): string {
+  if (!group.customPrompt) {
+    return SYSTEM_PROMPT;
+  }
+
+  return `${SYSTEM_PROMPT}
+
+---
+
+## 📌 群组特定要求
+
+${group.customPrompt}
+
+请在生成总结时同时遵循以上系统规则和群组特定要求。`;
 }
 
 function formatTime(date: Date): string {

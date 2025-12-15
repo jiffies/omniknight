@@ -1,15 +1,25 @@
 import { useState } from 'react';
 import { useTasks } from '../hooks/useTasks';
 import { useGroups } from '../hooks/useGroups';
+import { apiClient, handleResponse } from '../lib/api-client';
 import type { SummaryJob } from '@omniknight/shared';
 
 export function Tasks() {
-  const { data: tasksData, isLoading } = useTasks();
+  const { data: tasksData, isLoading, refetch } = useTasks();
   const { data: groupsData } = useGroups();
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   const tasks = tasksData?.data || [];
   const groups = groupsData?.data || [];
+
+  // 分页
+  const totalPages = Math.ceil(tasks.length / pageSize);
+  const paginatedTasks = tasks.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   // 根据groupId获取群组名称
   const getGroupName = (groupId: number) => {
@@ -114,6 +124,24 @@ export function Tasks() {
     setExpandedTaskId(expandedTaskId === taskId ? null : taskId);
   };
 
+  // 删除任务
+  const handleDeleteTask = async (taskId: number) => {
+    if (!confirm('确定要删除这个任务吗？')) {
+      return;
+    }
+
+    try {
+      const res = await apiClient.api.summaries.jobs[':id'].$delete({
+        param: { id: taskId.toString() },
+      });
+      await handleResponse(res);
+      refetch();
+      alert('任务已删除');
+    } catch (err) {
+      alert(`删除失败: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
   return (
     <div>
       <div className="px-4 sm:px-0">
@@ -135,40 +163,41 @@ export function Tasks() {
           </div>
         ) : (
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-max w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    任务ID
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                    ID
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px] max-w-[200px]">
                     群组
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-14">
                     类型
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                     状态
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
                     进度
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                     已拉取
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
                     创建时间
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
                     耗时
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
                     操作
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {tasks.map((task: SummaryJob) => (
+                {paginatedTasks.map((task: SummaryJob) => (
                   <>
                     {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role */}
                     <tr
@@ -184,21 +213,23 @@ export function Tasks() {
                       tabIndex={0}
                       role="button"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                         #{task.id}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {getGroupName(task.groupId)}
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        <div className="truncate" title={getGroupName(task.groupId)}>
+                          {getGroupName(task.groupId)}
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
                         {getTaskType(task)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         {getStatusBadge(task.status)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                          <div className="w-12 bg-gray-200 rounded-full h-2 mr-1">
                             <div
                               className={`h-2 rounded-full ${
                                 task.status === 'completed'
@@ -210,30 +241,30 @@ export function Tasks() {
                               style={{ width: `${task.progress}%` }}
                             />
                           </div>
-                          <span className="text-sm text-gray-600">
+                          <span className="text-xs text-gray-600">
                             {task.progress}%
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {task.fetchedCount} 条
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {task.fetchedCount}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                         {formatTime(task.scheduledAt)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                         {getDuration(task)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            toggleExpand(task.id);
+                            handleDeleteTask(task.id);
                           }}
-                          className="text-indigo-600 hover:text-indigo-900"
+                          className="text-red-600 hover:text-red-900"
                         >
-                          {expandedTaskId === task.id ? '收起 ▲' : '展开 ▼'}
+                          删除
                         </button>
                       </td>
                     </tr>
@@ -308,6 +339,74 @@ export function Tasks() {
                 ))}
               </tbody>
             </table>
+            </div>
+
+            {/* 分页 */}
+            {totalPages > 1 && (
+              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <div className="flex-1 flex justify-between sm:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    上一页
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    下一页
+                  </button>
+                </div>
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      显示第 <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> 到{' '}
+                      <span className="font-medium">{Math.min(currentPage * pageSize, tasks.length)}</span> 条，
+                      共 <span className="font-medium">{tasks.length}</span> 条任务
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        上一页
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => setCurrentPage(page)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            currentPage === page
+                              ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        下一页
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

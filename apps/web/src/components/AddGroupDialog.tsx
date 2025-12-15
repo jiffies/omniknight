@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { apiClient, handleResponse } from '../lib/api-client';
 import { useQuery } from '@tanstack/react-query';
+import { useAccounts, useAccountDialogs } from '../hooks/useAccounts';
 
 interface AddGroupDialogProps {
   onClose: () => void;
@@ -24,24 +25,39 @@ interface Topic {
 }
 
 export function AddGroupDialog({ onClose, onSuccess, existingGroups }: AddGroupDialogProps) {
+  const [step, setStep] = useState<'account' | 'group'>('account');
+  const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
   const [expandedForums, setExpandedForums] = useState<Set<string>>(new Set());
   const [forumTopics, setForumTopics] = useState<Map<string, Topic[]>>(new Map());
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
 
-  // 获取所有Telegram群组
-  const { data: dialogsData, isLoading: dialogsLoading } = useQuery({
-    queryKey: ['telegram-dialogs'],
-    queryFn: async () => {
-      const res = await apiClient.api.telegram.dialogs.$get();
-      return handleResponse<{ data: Dialog[] }>(res);
-    },
-  });
+  // 获取所有账号
+  const { data: accountsData, isLoading: accountsLoading } = useAccounts();
+  const accounts = accountsData?.data || [];
 
+  // 获取选中账号的群组列表
+  const { data: dialogsData, isLoading: dialogsLoading } = useAccountDialogs(selectedAccountId);
   const dialogs = dialogsData?.data || [];
+
+  // 选择账号
+  const handleSelectAccount = (accountId: number) => {
+    setSelectedAccountId(accountId);
+    setStep('group');
+  };
+
+  // 返回账号选择
+  const handleBackToAccount = () => {
+    setStep('account');
+    setSelectedAccountId(null);
+    setSelectedItems(new Set());
+    setExpandedForums(new Set());
+  };
 
   // 点击Forum展开/折叠
   const handleToggleForum = async (forumId: string) => {
+    if (!selectedAccountId) return;
+
     if (expandedForums.has(forumId)) {
       // 折叠
       const newExpanded = new Set(expandedForums);
@@ -51,8 +67,8 @@ export function AddGroupDialog({ onClose, onSuccess, existingGroups }: AddGroupD
       // 展开并获取Topics
       if (!forumTopics.has(forumId)) {
         try {
-          const res = await apiClient.api.telegram.forums[':channelId'].topics.$get({
-            param: { channelId: forumId },
+          const res = await apiClient.api.accounts[':accountId'].dialogs[':channelId'].topics.$get({
+            param: { accountId: selectedAccountId.toString(), channelId: forumId },
           });
           const data = await handleResponse<{ data: Topic[] }>(res);
           const newTopics = new Map(forumTopics);
@@ -84,6 +100,8 @@ export function AddGroupDialog({ onClose, onSuccess, existingGroups }: AddGroupD
 
   // 提交添加
   const handleSubmit = async () => {
+    if (!selectedAccountId) return;
+
     setLoading(true);
     try {
       // 先处理普通群组，获取可能的父Forum ID
@@ -101,7 +119,9 @@ export function AddGroupDialog({ onClose, onSuccess, existingGroups }: AddGroupD
                 title: dialog.title,
                 username: dialog.username,
                 type: dialog.type,
+                accountId: selectedAccountId, // 添加账号ID
                 isTopic: false,
+                groupName: dialog.title, // 普通群组，groupName 就是 title
               },
             });
             const result = await handleResponse<{ data: { id: number } }>(res);
@@ -132,11 +152,14 @@ export function AddGroupDialog({ onClose, onSuccess, existingGroups }: AddGroupD
             const res = await apiClient.api.groups.$post({
               json: {
                 telegramId: forumId,
-                title: `${forum.title} - ${topic.title}`,
+                title: `${forum.title} - ${topic.title}`, // 保持兼容性
                 type: 'forum' as const,
+                accountId: selectedAccountId, // 添加账号ID
                 topicId: topic.id,
                 parentGroupId: forumIdMap.get(forumId), // 如果父Forum也被添加了，设置关联
                 isTopic: true,
+                groupName: forum.title, // 父 forum 的名称
+                topicName: topic.title, // topic 的名称
               },
             });
             await handleResponse(res);
@@ -155,7 +178,7 @@ export function AddGroupDialog({ onClose, onSuccess, existingGroups }: AddGroupD
     }
   };
 
-  if (dialogsLoading) {
+  if (accountsLoading || (step === 'group' && dialogsLoading)) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
@@ -165,11 +188,86 @@ export function AddGroupDialog({ onClose, onSuccess, existingGroups }: AddGroupD
     );
   }
 
+  // 步骤1：选择账号
+  if (step === 'account') {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold">选择账号</h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+          </div>
+
+          {accounts.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">还没有添加任何账号</p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+              >
+                去添加账号
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {accounts.map((account) => (
+                <button
+                  type="button"
+                  key={account.id}
+                  onClick={() => handleSelectAccount(account.id)}
+                  className="w-full p-4 border rounded-lg hover:bg-gray-50 text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!account.isActive}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">
+                        {account.firstName || account.phoneNumber}
+                        {account.lastName && ` ${account.lastName}`}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {account.phoneNumber}
+                        {account.username && ` • @${account.username}`}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {account.isConnected ? (
+                        <span className="text-xs text-green-600">● 在线</span>
+                      ) : (
+                        <span className="text-xs text-gray-400">● 离线（将自动连接）</span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 步骤2：选择群组
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold">选择要监控的群组/话题</h3>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleBackToAccount}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              ← 返回
+            </button>
+            <h3 className="text-xl font-bold">选择要监控的群组/话题</h3>
+          </div>
           <button
             type="button"
             onClick={onClose}

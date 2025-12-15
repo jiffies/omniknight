@@ -1,21 +1,21 @@
 import { db, groups, summaries } from '@omniknight/db';
 import { eq } from 'drizzle-orm';
 import { logger } from '../../utils/logger';
+import { telegramAccountManager } from '../telegram/account-manager';
+import { messageCache } from '../telegram/message-cache';
+import { fetchMessagesWithRateLimit } from '../telegram/message-fetcher';
 import { generateCompletion } from './client';
 import { buildSummaryPrompt, buildSystemPrompt } from './prompt-builder';
-import { telegramAccountManager } from '../telegram/account-manager';
-import { fetchMessagesWithRateLimit } from '../telegram/message-fetcher';
-import { messageCache } from '../telegram/message-cache';
 
 export async function generateSummary(
   groupId: number,
   periodStart: Date,
   periodEnd: Date,
-  onProgress?: (update: { progress: number; fetchedCount: number }) => Promise<void>
+  onProgress?: (update: { progress: number; fetchedCount: number }) => Promise<void>,
 ) {
   const startTime = Date.now();
   let fetchDuration = 0;
-  let floodWaitCount = 0;
+  const floodWaitCount = 0;
 
   logger.info('========================================');
   logger.info('📝 开始生成总结', { groupId });
@@ -33,7 +33,7 @@ export async function generateSummary(
   }
   logger.info('[1/10] ✅ 群组信息获取成功', {
     groupName: group.title,
-    telegramId: group.telegramId
+    telegramId: group.telegramId,
   });
 
   // 2. 检查消息缓存
@@ -65,7 +65,7 @@ export async function generateSummary(
       periodStart,
       periodEnd,
       onProgress,
-      group.topicId ?? undefined // 🔥 如果是Forum Topic，传递topicId
+      group.topicId ?? undefined, // 🔥 如果是Forum Topic，传递topicId
     );
 
     fetchDuration = Date.now() - fetchStartTime;
@@ -112,7 +112,7 @@ export async function generateSummary(
     group,
     validMessages as any, // fetchedMessages 与 Message 类型兼容
     periodStart,
-    periodEnd
+    periodEnd,
   );
   logger.info('[8/10] ✅ Prompt 构建完成', {
     消息数量: validMessages.length,
@@ -193,7 +193,7 @@ export async function generateSummary(
 // 简单采样：按时间均匀采样
 function sampleMessages<T extends { id: number; date: Date }>(
   messages: T[],
-  targetCount: number
+  targetCount: number,
 ): T[] {
   if (messages.length <= targetCount) {
     return messages;
@@ -228,7 +228,7 @@ function sleep(ms: number): Promise<void> {
  */
 async function generateCompletionWithRetry(
   params: Parameters<typeof generateCompletion>[0],
-  maxRetries = 5
+  maxRetries = 5,
 ) {
   let lastError: Error | null = null;
 
@@ -254,7 +254,7 @@ async function generateCompletionWithRetry(
 
       // 如果还有重试机会，使用指数退避
       if (attempt < maxRetries) {
-        const delayMs = Math.min(1000 * (2 ** (attempt - 1)), 30000); // 最大等待30秒
+        const delayMs = Math.min(1000 * 2 ** (attempt - 1), 30000); // 最大等待30秒
         logger.info(`⏳ ${delayMs}ms 后重试...`, {
           nextAttempt: attempt + 1,
           delayMs,

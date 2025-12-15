@@ -130,9 +130,7 @@ export function AddAccountDialog({ onClose }: AddAccountDialogProps) {
         {step === 'code' && (
           <form onSubmit={handleCodeSubmit}>
             <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-4">
-                Telegram 已向 {phoneNumber} 发送验证码
-              </p>
+              <p className="text-sm text-gray-600 mb-4">Telegram 已向 {phoneNumber} 发送验证码</p>
               <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-2">
                 验证码
               </label>
@@ -170,9 +168,7 @@ export function AddAccountDialog({ onClose }: AddAccountDialogProps) {
         {step === 'password' && (
           <form onSubmit={handlePasswordSubmit}>
             <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-4">
-                此账号启用了两步验证，请输入密码
-              </p>
+              <p className="text-sm text-gray-600 mb-4">此账号启用了两步验证，请输入密码</p>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 两步验证密码
               </label>

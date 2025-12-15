@@ -1,5 +1,5 @@
-import type { AIProvider, GenerateOptions, GenerateResponse } from './base';
 import { logger } from '../../../utils/logger';
+import type { AIProvider, GenerateOptions, GenerateResponse } from './base';
 
 /**
  * Mock AI Provider - 用于测试
@@ -62,7 +62,7 @@ export class MockAIProvider implements AIProvider {
 
 - **时间范围**: ${timeRange}
 - **消息数量**: ${messageCount} 条
-- **活跃程度**: ${this.getActivityLevel(parseInt(messageCount))}
+- **活跃程度**: ${this.getActivityLevel(Number.parseInt(messageCount))}
 
 ## 🔥 核心话题
 
@@ -71,10 +71,12 @@ ${topics.map((topic, i) => `${i + 1}. **${topic}** - 群内成员讨论了相关
 ## 💬 重点讨论
 
 ### 主要内容
-${messageLines
-  ?.slice(0, 3)
-  .map((line) => `- ${line.trim()}`)
-  .join('\n') || '暂无重点讨论内容'}
+${
+  messageLines
+    ?.slice(0, 3)
+    .map((line) => `- ${line.trim()}`)
+    .join('\n') || '暂无重点讨论内容'
+}
 
 ### 关键词
 ${keywords.map((kw) => `\`${kw}\``).join(' ')}
@@ -92,14 +94,7 @@ ${keywords.map((kw) => `\`${kw}\``).join(' ')}
   }
 
   private extractTopics(messages: string[]): string[] {
-    const commonTopics = [
-      '项目进展',
-      '技术讨论',
-      '市场动态',
-      '团队协作',
-      '问题解决',
-      '经验分享',
-    ];
+    const commonTopics = ['项目进展', '技术讨论', '市场动态', '团队协作', '问题解决', '经验分享'];
 
     // 简单逻辑：根据消息数量返回不同数量的话题
     const topicCount = Math.min(3, Math.max(1, Math.floor(messages.length / 2)));
@@ -130,7 +125,8 @@ ${keywords.map((kw) => `\`${kw}\``).join(' ')}
       const numbers = cleanMsg.match(/\d+/g) || [];
       if (numbers.length > 0 && numbers.length < 3) {
         for (const n of numbers) {
-          if (Number.parseInt(n) > 10) { // 只保留大于10的数字，过滤掉时间
+          if (Number.parseInt(n) > 10) {
+            // 只保留大于10的数字，过滤掉时间
             keywords.add(n);
           }
         }

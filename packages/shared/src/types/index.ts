@@ -1,12 +1,25 @@
 import type { InferSelectModel } from '@omniknight/db';
-import type { groups, messages, summaries, filterRules, summaryJobs } from '@omniknight/db';
+import type { filterRules, groups, summaries, summaryJobs } from '@omniknight/db';
 
 // 数据库模型类型
 export type Group = InferSelectModel<typeof groups>;
-export type Message = InferSelectModel<typeof messages>;
 export type Summary = InferSelectModel<typeof summaries>;
 export type FilterRule = InferSelectModel<typeof filterRules>;
 export type SummaryJob = InferSelectModel<typeof summaryJobs>;
+
+// 消息类型（仅用于内存，不保存到数据库）
+export interface Message {
+  id: number;
+  text: string;
+  date: Date;
+  senderId?: string;
+  senderName?: string;
+  isForwarded: boolean;
+  hasMedia: boolean;
+  mediaType?: string;
+  isFiltered: boolean;
+  filterReason?: string;
+}
 
 // 扩展类型
 export type SummaryWithGroup = Summary & {

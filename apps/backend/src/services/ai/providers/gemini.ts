@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
-import type { AIProvider, GenerateOptions, GenerateResponse, AIMessage } from './base';
 import { logger } from '../../../utils/logger';
+import type { AIMessage, AIProvider, GenerateOptions, GenerateResponse } from './base';
 
 /**
  * Google Gemini AI Provider
@@ -74,7 +74,9 @@ export class GeminiProvider implements AIProvider {
    * - assistant -> role: 'model'
    * - content -> parts: [{ text }]
    */
-  private convertMessages(messages: AIMessage[]): Array<{ role: string; parts: Array<{ text: string }> }> {
+  private convertMessages(
+    messages: AIMessage[],
+  ): Array<{ role: string; parts: Array<{ text: string }> }> {
     return messages.map((msg) => {
       // Gemini API 使用 'user' 和 'model' 作为角色
       // system 消息需要转换为 user 消息

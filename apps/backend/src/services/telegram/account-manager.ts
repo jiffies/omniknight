@@ -1,10 +1,10 @@
+import { db, groups, telegramAccounts } from '@omniknight/db';
+import { eq } from 'drizzle-orm';
 import { TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions';
-import { db, telegramAccounts, groups } from '@omniknight/db';
-import { eq } from 'drizzle-orm';
-import { TelegramClientWrapper } from './telegram-client-wrapper';
-import { logger } from '../../utils/logger';
 import { env } from '../../config/env';
+import { logger } from '../../utils/logger';
+import { TelegramClientWrapper } from './telegram-client-wrapper';
 
 /**
  * 账号使用追踪信息
@@ -125,7 +125,9 @@ class TelegramAccountManager {
     usage.autoDisconnectTimer = setTimeout(async () => {
       const idleTime = Date.now() - usage.lastUsed.getTime();
       if (idleTime >= this.connectionTTL) {
-        logger.info(`🧹 连接空闲超时，自动释放 [账号ID: ${accountId}]，空闲时长: ${Math.round(idleTime / 60000)}分钟`);
+        logger.info(
+          `🧹 连接空闲超时，自动释放 [账号ID: ${accountId}]，空闲时长: ${Math.round(idleTime / 60000)}分钟`,
+        );
         await this.disconnectAccount(accountId);
       }
     }, this.connectionTTL);
@@ -256,7 +258,7 @@ class TelegramAccountManager {
       session,
       Number.parseInt(env.TELEGRAM_API_ID),
       env.TELEGRAM_API_HASH,
-      { connectionRetries: 5 }
+      { connectionRetries: 5 },
     );
 
     try {
@@ -319,7 +321,6 @@ class TelegramAccountManager {
     logger.info(`✅ 账号已移除 [ID: ${accountId}]`);
   }
 
-
   /**
    * 获取所有已连接的账号ID
    */
@@ -366,7 +367,10 @@ class TelegramAccountManager {
           })
           .where(eq(telegramAccounts.id, accountId));
       } catch (error) {
-        logger.error(`关闭账号连接失败 [ID: ${accountId}]`, error instanceof Error ? error : undefined);
+        logger.error(
+          `关闭账号连接失败 [ID: ${accountId}]`,
+          error instanceof Error ? error : undefined,
+        );
       }
     }
 

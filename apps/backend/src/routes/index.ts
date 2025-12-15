@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import accountsRoute from './accounts';
+import filterRulesRoute from './filter-rules';
 import groupsRoute from './groups';
 import summariesRoute from './summaries';
-import telegramRoute from './telegram';
-import filterRulesRoute from './filter-rules';
 import systemConfigRoute from './system-config';
-import accountsRoute from './accounts';
+import telegramRoute from './telegram';
 
 const app = new Hono();
 

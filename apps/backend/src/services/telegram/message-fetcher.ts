@@ -1,8 +1,8 @@
 import type { TelegramClient } from 'telegram';
 import type { Api } from 'telegram';
-import { RateLimiter } from './rate-limiter';
-import { applyQuickFilters } from '../cleaner/message-filter';
 import { logger } from '../../utils/logger';
+import { applyQuickFilters } from '../cleaner/message-filter';
+import { RateLimiter } from './rate-limiter';
 
 /**
  * 从 Telegram API 拉取的原始消息（简化类型）
@@ -46,7 +46,7 @@ export async function fetchMessagesWithRateLimit(
   startTime: Date,
   endTime: Date,
   onProgress?: ProgressUpdateFn,
-  topicId?: number
+  topicId?: number,
 ): Promise<FetchedMessage[]> {
   const rateLimiter = new RateLimiter();
   const allMessages: FetchedMessage[] = [];
@@ -82,9 +82,7 @@ export async function fetchMessagesWithRateLimit(
       error: error instanceof Error ? error.message : String(error),
       groupId,
     });
-    throw new Error(
-      `无法获取频道信息，请确保已加入该频道/群组: ${groupId}`
-    );
+    throw new Error(`无法获取频道信息，请确保已加入该频道/群组: ${groupId}`);
   }
 
   while (currentDate > startTime) {
@@ -119,12 +117,14 @@ export async function fetchMessagesWithRateLimit(
       const messageDates = messages
         .filter((msg: Api.Message) => msg.date)
         .map((msg: Api.Message) => new Date((msg.date as number) * 1000));
-      const earliestMsgDate = messageDates.length > 0
-        ? new Date(Math.min(...messageDates.map(d => d.getTime())))
-        : null;
-      const latestMsgDate = messageDates.length > 0
-        ? new Date(Math.max(...messageDates.map(d => d.getTime())))
-        : null;
+      const earliestMsgDate =
+        messageDates.length > 0
+          ? new Date(Math.min(...messageDates.map((d) => d.getTime())))
+          : null;
+      const latestMsgDate =
+        messageDates.length > 0
+          ? new Date(Math.max(...messageDates.map((d) => d.getTime())))
+          : null;
 
       // 转换和过滤消息
       const filteredByTime = messages.filter((msg: Api.Message) => {
@@ -136,13 +136,16 @@ export async function fetchMessagesWithRateLimit(
       logger.info('📊 批次拉取结果', {
         批次号: totalBatches + 1,
         原始消息数: messages.length,
-        消息时间范围: earliestMsgDate && latestMsgDate
-          ? `${earliestMsgDate.toISOString()} ~ ${latestMsgDate.toISOString()}`
-          : '无时间信息',
+        消息时间范围:
+          earliestMsgDate && latestMsgDate
+            ? `${earliestMsgDate.toISOString()} ~ ${latestMsgDate.toISOString()}`
+            : '无时间信息',
         最早消息时间: earliestMsgDate?.toISOString() || '无',
         时间过滤后: filteredByTime.length,
         是否在目标范围内: earliestMsgDate
-          ? earliestMsgDate >= startTime ? '✅ 已进入目标范围' : '⏳ 还未到达起始时间'
+          ? earliestMsgDate >= startTime
+            ? '✅ 已进入目标范围'
+            : '⏳ 还未到达起始时间'
           : '未知',
       });
 
@@ -171,7 +174,7 @@ export async function fetchMessagesWithRateLimit(
             isFiltered: filterResult.isFiltered,
             filterReason: filterResult.filterReason,
           };
-        })
+        }),
       );
 
       allMessages.push(...processed);
@@ -310,8 +313,8 @@ function extractFloodWaitSeconds(error: unknown): number {
     const err = error as { errorMessage?: string; message?: string };
     const message = err.errorMessage || err.message || '';
     const match = message.match(/FLOOD_WAIT_(\d+)/);
-    if (match && match[1]) {
-      return parseInt(match[1], 10);
+    if (match?.[1]) {
+      return Number.parseInt(match[1], 10);
     }
   }
   return 60; // 默认60秒

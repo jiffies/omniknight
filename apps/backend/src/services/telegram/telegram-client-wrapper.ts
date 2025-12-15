@@ -4,9 +4,17 @@ import { env } from '../../config/env';
 import { logger } from '../../utils/logger';
 
 // 全局定时器函数声明（避免TypeScript类型错误）
-declare const setInterval: (handler: (...args: unknown[]) => void, timeout: number, ...args: unknown[]) => number;
+declare const setInterval: (
+  handler: (...args: unknown[]) => void,
+  timeout: number,
+  ...args: unknown[]
+) => number;
 declare const clearInterval: (handle: number) => void;
-declare const setTimeout: (handler: (...args: unknown[]) => void, timeout: number, ...args: unknown[]) => number;
+declare const setTimeout: (
+  handler: (...args: unknown[]) => void,
+  timeout: number,
+  ...args: unknown[]
+) => number;
 declare const clearTimeout: (handle: number) => void;
 
 export class TelegramClientWrapper {
@@ -24,7 +32,7 @@ export class TelegramClientWrapper {
 
   constructor(
     public readonly accountId: number,
-    sessionString: string
+    sessionString: string,
   ) {
     this.session = new StringSession(sessionString);
   }
@@ -40,7 +48,7 @@ export class TelegramClientWrapper {
         connectionRetries: 5,
         timeout: 30, // 设置30秒超时
         requestRetries: 3, // 请求重试3次
-      }
+      },
     );
 
     logger.info(`✅ Telegram 客户端初始化完成 [账号ID: ${this.accountId}]`);
@@ -100,7 +108,9 @@ export class TelegramClientWrapper {
     // 清理旧的定时器
     this.stopKeepAlive();
 
-    logger.debug(`💓 启动心跳保活 [账号ID: ${this.accountId}]，间隔: ${this.KEEP_ALIVE_INTERVAL / 1000}秒`);
+    logger.debug(
+      `💓 启动心跳保活 [账号ID: ${this.accountId}]，间隔: ${this.KEEP_ALIVE_INTERVAL / 1000}秒`,
+    );
 
     this.keepAliveTimer = setInterval(async () => {
       try {
@@ -117,7 +127,7 @@ export class TelegramClientWrapper {
       } catch (error) {
         logger.warn(
           `⚠️ 心跳失败 [账号ID: ${this.accountId}]`,
-          error instanceof Error ? { message: error.message, stack: error.stack } : undefined
+          error instanceof Error ? { message: error.message, stack: error.stack } : undefined,
         );
 
         // 心跳失败，尝试重连
@@ -166,7 +176,7 @@ export class TelegramClientWrapper {
     this.reconnectAttempts++;
 
     logger.info(
-      `🔄 尝试重连 (${this.reconnectAttempts}/${this.MAX_RECONNECT_ATTEMPTS}) [账号ID: ${this.accountId}]`
+      `🔄 尝试重连 (${this.reconnectAttempts}/${this.MAX_RECONNECT_ATTEMPTS}) [账号ID: ${this.accountId}]`,
     );
 
     try {
@@ -190,7 +200,7 @@ export class TelegramClientWrapper {
     } catch (error) {
       logger.error(
         `❌ 重连失败 [账号ID: ${this.accountId}]`,
-        error instanceof Error ? { message: error.message, stack: error.stack } : undefined
+        error instanceof Error ? { message: error.message, stack: error.stack } : undefined,
       );
 
       // 如果还有重试机会，调度下一次重连
@@ -257,12 +267,17 @@ export class TelegramClientWrapper {
           offsetId: 0,
           offsetTopic: 0,
           limit: 100,
-        })
+        }),
       );
 
       // 解析topics
       return result.topics.map((topic) => {
-        const topicData = topic as { id: number; title?: string; iconColor?: number; iconEmojiId?: string };
+        const topicData = topic as {
+          id: number;
+          title?: string;
+          iconColor?: number;
+          iconEmojiId?: string;
+        };
         return {
           id: topicData.id,
           title: topicData.title || '未命名话题',
@@ -271,7 +286,10 @@ export class TelegramClientWrapper {
         };
       });
     } catch (error) {
-      logger.error(`获取Forum Topics失败 [账号ID: ${this.accountId}]`, error instanceof Error ? error : undefined);
+      logger.error(
+        `获取Forum Topics失败 [账号ID: ${this.accountId}]`,
+        error instanceof Error ? error : undefined,
+      );
       throw error;
     }
   }

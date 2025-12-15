@@ -1,8 +1,8 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { db, groups, summaries, telegramAccounts } from '@omniknight/db';
 import { createGroupSchema, updateGroupSchema } from '@omniknight/shared';
 import { eq, sql } from 'drizzle-orm';
+import { Hono } from 'hono';
 import { logger } from '../utils/logger';
 
 const app = new Hono();
@@ -39,7 +39,7 @@ app.get('/', async (c) => {
             }
           : null,
       };
-    })
+    }),
   );
 
   return c.json({ data: groupsWithStats });
@@ -111,14 +111,21 @@ app.post(
         })
         .returning();
 
-      logger.info('群组已创建', { groupId: group.id, title: group.title, accountId: data.accountId });
+      logger.info('群组已创建', {
+        groupId: group.id,
+        title: group.title,
+        accountId: data.accountId,
+      });
 
       return c.json({ data: group }, 201);
     } catch (error) {
       logger.error('创建群组失败', error instanceof Error ? error : undefined);
-      return c.json({ error: error instanceof Error ? error.message : 'Failed to create group' }, 500);
+      return c.json(
+        { error: error instanceof Error ? error.message : 'Failed to create group' },
+        500,
+      );
     }
-  }
+  },
 );
 
 // PATCH /api/groups/:id - 更新群组配置

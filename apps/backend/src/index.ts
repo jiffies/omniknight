@@ -1,9 +1,9 @@
 import { serve } from '@hono/node-server';
-import app from './routes/index';
 import { env } from './config/env';
-import { logger } from './utils/logger';
-import { telegramAccountManager } from './services/telegram/account-manager';
+import app from './routes/index';
 import { schedulerService } from './services/scheduler/scheduler';
+import { telegramAccountManager } from './services/telegram/account-manager';
+import { logger } from './utils/logger';
 
 async function main() {
   try {

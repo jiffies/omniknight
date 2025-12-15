@@ -6,10 +6,10 @@
  * 3. 保存到数据库
  */
 
-import { telegramService } from '../services/telegram/client';
 import { db, groups } from '@omniknight/db';
-import { logger } from '../utils/logger';
 import input from 'input';
+import { telegramService } from '../services/telegram/client';
+import { logger } from '../utils/logger';
 
 async function setup() {
   try {
@@ -41,7 +41,7 @@ async function setup() {
 
     const selectedIndexes = selection
       .split(',')
-      .map((s) => parseInt(s.trim()) - 1)
+      .map((s) => Number.parseInt(s.trim()) - 1)
       .filter((i) => i >= 0 && i < dialogs.length);
 
     if (selectedIndexes.length === 0) {

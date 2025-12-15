@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { telegramAccounts } from './telegram-accounts';
 
 export const groups = sqliteTable(
@@ -37,18 +37,17 @@ export const groups = sqliteTable(
     lastSummaryAt: integer('last_summary_at', { mode: 'timestamp' }),
     lastSyncedMessageId: integer('last_synced_message_id'), // 最后同步的消息ID（用于增量拉取）
     rateLimitState: text('rate_limit_state'), // JSON 格式存储限流状态（可选，用于调试）
-    createdAt: integer('created_at', { mode: 'timestamp' })
-      .notNull()
-      .default(sql`(unixepoch())`),
-    updatedAt: integer('updated_at', { mode: 'timestamp' })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   },
   (table) => ({
     // 组合唯一约束：同一个telegram_id可以有多个topics（通过topicId区分）
-    telegramTopicUnique: uniqueIndex('idx_groups_telegram_topic_unique').on(table.telegramId, table.topicId),
+    telegramTopicUnique: uniqueIndex('idx_groups_telegram_topic_unique').on(
+      table.telegramId,
+      table.topicId,
+    ),
     telegramIdIdx: index('idx_groups_telegram_id').on(table.telegramId),
     activeIdx: index('idx_groups_active').on(table.isActive),
     accountIdIdx: index('idx_groups_account_id').on(table.accountId),
-  })
+  }),
 );

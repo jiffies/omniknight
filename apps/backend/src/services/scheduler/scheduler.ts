@@ -82,8 +82,7 @@ class SchedulerService {
       // 如果没有上次摘要时间，或者距离上次摘要已经超过间隔时间
       const intervalMs = group.summaryInterval * 60 * 60 * 1000; // 转换为毫秒
       const shouldGenerate =
-        !lastSummaryAt ||
-        now.getTime() - lastSummaryAt.getTime() >= intervalMs;
+        !lastSummaryAt || now.getTime() - lastSummaryAt.getTime() >= intervalMs;
 
       if (shouldGenerate) {
         logger.info('🔔 触发定时摘要任务', {
@@ -102,7 +101,7 @@ class SchedulerService {
           group.id,
           periodStart,
           periodEnd,
-          'scheduled' // 标记为定时任务
+          'scheduled', // 标记为定时任务
         );
 
         logger.info('✅ 定时摘要任务已创建', {
@@ -123,10 +122,7 @@ class SchedulerService {
         });
 
         // 更新群组的最后摘要时间
-        await db
-          .update(groups)
-          .set({ lastSummaryAt: now })
-          .where(eq(groups.id, group.id));
+        await db.update(groups).set({ lastSummaryAt: now }).where(eq(groups.id, group.id));
       }
     } catch (error) {
       logger.error('检查群组定时任务失败', {

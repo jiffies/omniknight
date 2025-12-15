@@ -1,13 +1,10 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { db, summaries, summaryJobs } from '@omniknight/db';
-import { querySummariesSchema, generateSummarySchema } from '@omniknight/shared';
-import { eq, and, desc } from 'drizzle-orm';
+import { generateSummarySchema, querySummariesSchema } from '@omniknight/shared';
+import { and, desc, eq } from 'drizzle-orm';
+import { Hono } from 'hono';
+import { createSummaryJob, executeSummaryJob } from '../services/scheduler/job-helpers';
 import { logger } from '../utils/logger';
-import {
-  createSummaryJob,
-  executeSummaryJob,
-} from '../services/scheduler/job-helpers';
 
 const app = new Hono();
 
@@ -42,11 +39,7 @@ app.post('/generate', zValidator('json', generateSummarySchema), async (c) => {
 
   try {
     // 创建任务
-    const job = await createSummaryJob(
-      groupId,
-      new Date(periodStart),
-      new Date(periodEnd)
-    );
+    const job = await createSummaryJob(groupId, new Date(periodStart), new Date(periodEnd));
 
     // 异步执行（不阻塞响应）
     executeSummaryJob(job.id).catch((err) => {
@@ -76,11 +69,7 @@ app.get('/jobs', async (c) => {
 app.get('/jobs/:id', async (c) => {
   const jobId = Number.parseInt(c.req.param('id'), 10);
 
-  const job = await db
-    .select()
-    .from(summaryJobs)
-    .where(eq(summaryJobs.id, jobId))
-    .limit(1);
+  const job = await db.select().from(summaryJobs).where(eq(summaryJobs.id, jobId)).limit(1);
 
   if (!job || job.length === 0) {
     return c.json({ error: 'Job not found' }, 404);
@@ -95,11 +84,7 @@ app.delete('/jobs/:id', async (c) => {
 
   try {
     // 检查任务是否存在
-    const job = await db
-      .select()
-      .from(summaryJobs)
-      .where(eq(summaryJobs.id, jobId))
-      .limit(1);
+    const job = await db.select().from(summaryJobs).where(eq(summaryJobs.id, jobId)).limit(1);
 
     if (!job || job.length === 0) {
       return c.json({ error: 'Job not found' }, 404);
@@ -118,7 +103,7 @@ app.delete('/jobs/:id', async (c) => {
 
 // GET /api/summaries/:id - 获取总结详情
 app.get('/:id', async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = Number.parseInt(c.req.param('id'));
 
   const summary = await db.query.summaries.findFirst({
     where: eq(summaries.id, id),

@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const telegramAccounts = sqliteTable(
   'telegram_accounts',
@@ -22,15 +22,11 @@ export const telegramAccounts = sqliteTable(
 
     // 时间戳
     lastConnectedAt: integer('last_connected_at', { mode: 'timestamp' }),
-    createdAt: integer('created_at', { mode: 'timestamp' })
-      .notNull()
-      .default(sql`(unixepoch())`),
-    updatedAt: integer('updated_at', { mode: 'timestamp' })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   },
   (table) => ({
     phoneNumberIdx: index('idx_telegram_accounts_phone').on(table.phoneNumber),
     activeIdx: index('idx_telegram_accounts_active').on(table.isActive),
-  })
+  }),
 );

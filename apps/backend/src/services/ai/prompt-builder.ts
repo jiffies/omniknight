@@ -1,4 +1,4 @@
-import type { Message, Group } from '@omniknight/shared';
+import type { Group, Message } from '@omniknight/shared';
 
 export const SYSTEM_PROMPT = `你是一个 Telegram 群组内容总结助手。你的任务是从大量群聊消息中提取有价值的信息，生成结构化的 Markdown 总结。
 
@@ -38,7 +38,7 @@ export function buildSummaryPrompt(
   group: Group,
   messages: Message[],
   periodStart: Date,
-  periodEnd: Date
+  periodEnd: Date,
 ): string {
   const formattedMessages = messages.map((m) => {
     const time = formatTime(m.date);

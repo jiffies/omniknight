@@ -113,12 +113,7 @@ class MessageCache {
   /**
    * 设置缓存
    */
-  set(
-    groupId: number,
-    periodStart: Date,
-    periodEnd: Date,
-    messages: FetchedMessage[]
-  ): void {
+  set(groupId: number, periodStart: Date, periodEnd: Date, messages: FetchedMessage[]): void {
     const granularity = 10 * 60 * 1000;
     const alignedStart = Math.floor(periodStart.getTime() / granularity) * granularity;
     const alignedEnd = Math.floor(periodEnd.getTime() / granularity) * granularity;

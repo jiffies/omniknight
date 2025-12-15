@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { apiClient, handleResponse } from '../lib/api-client';
 import { useQuery } from '@tanstack/react-query';
-import { useAccounts, useAccountDialogs } from '../hooks/useAccounts';
+import { useState } from 'react';
+import { useAccountDialogs, useAccounts } from '../hooks/useAccounts';
+import { apiClient, handleResponse } from '../lib/api-client';
 
 interface AddGroupDialogProps {
   onClose: () => void;
@@ -195,11 +195,7 @@ export function AddGroupDialog({ onClose, onSuccess, existingGroups }: AddGroupD
         <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-bold">选择账号</h3>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700"
-            >
+            <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-700">
               ✕
             </button>
           </div>
@@ -268,11 +264,7 @@ export function AddGroupDialog({ onClose, onSuccess, existingGroups }: AddGroupD
             </button>
             <h3 className="text-xl font-bold">选择要监控的群组/话题</h3>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
+          <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-700">
             ✕
           </button>
         </div>
@@ -309,8 +301,7 @@ export function AddGroupDialog({ onClose, onSuccess, existingGroups }: AddGroupD
                       )}
 
                       <span className={isAlreadyAdded ? 'text-gray-400' : ''}>
-                        {dialog.title} ({dialog.type})
-                        {isAlreadyAdded && ' - 已添加'}
+                        {dialog.title} ({dialog.type}){isAlreadyAdded && ' - 已添加'}
                       </span>
                     </div>
 

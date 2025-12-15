@@ -1,14 +1,13 @@
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useGroups } from '../hooks/useGroups';
 import { useSummaries } from '../hooks/useSummaries';
-import ReactMarkdown from 'react-markdown';
 
 export function Dashboard() {
   const [selectedGroupId, setSelectedGroupId] = useState<number | undefined>();
 
   const { data: groupsData, isLoading: isLoadingGroups } = useGroups();
-  const { data: summariesData, isLoading: isLoadingSummaries } =
-    useSummaries(selectedGroupId);
+  const { data: summariesData, isLoading: isLoadingSummaries } = useSummaries(selectedGroupId);
 
   const groups = groupsData?.data || [];
   const summaries = summariesData?.data || [];
@@ -17,9 +16,7 @@ export function Dashboard() {
     <div>
       <div className="px-4 sm:px-0">
         <h2 className="text-2xl font-bold text-gray-900">AI 总结列表</h2>
-        <p className="mt-1 text-sm text-gray-600">
-          查看所有群组的 AI 总结内容
-        </p>
+        <p className="mt-1 text-sm text-gray-600">查看所有群组的 AI 总结内容</p>
       </div>
 
       {/* 群组筛选 */}
@@ -32,7 +29,7 @@ export function Dashboard() {
           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md bg-white"
           value={selectedGroupId || ''}
           onChange={(e) =>
-            setSelectedGroupId(e.target.value ? parseInt(e.target.value) : undefined)
+            setSelectedGroupId(e.target.value ? Number.parseInt(e.target.value) : undefined)
           }
         >
           <option value="">所有群组</option>
@@ -61,13 +58,9 @@ export function Dashboard() {
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <h3 className="text-lg font-medium text-gray-900">
-                      {summary.title}
-                    </h3>
+                    <h3 className="text-lg font-medium text-gray-900">{summary.title}</h3>
                     <div className="mt-1 flex items-center text-sm text-gray-500">
-                      <span className="mr-4">
-                        📁 {summary.group?.title || '未知群组'}
-                      </span>
+                      <span className="mr-4">📁 {summary.group?.title || '未知群组'}</span>
                       <span className="mr-4">
                         📅{' '}
                         {new Date(summary.periodEnd).toLocaleString('zh-CN', {
@@ -86,9 +79,7 @@ export function Dashboard() {
                       {summary.aiModel}
                     </span>
                     {summary.tokensUsed && (
-                      <span className="text-xs text-gray-500">
-                        {summary.tokensUsed} tokens
-                      </span>
+                      <span className="text-xs text-gray-500">{summary.tokensUsed} tokens</span>
                     )}
                   </div>
                 </div>

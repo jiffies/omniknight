@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useTasks } from '../hooks/useTasks';
-import { useGroups } from '../hooks/useGroups';
-import { apiClient, handleResponse } from '../lib/api-client';
 import type { SummaryJob } from '@omniknight/shared';
+import { useState } from 'react';
+import { useGroups } from '../hooks/useGroups';
+import { useTasks } from '../hooks/useTasks';
+import { apiClient, handleResponse } from '../lib/api-client';
 
 export function Tasks() {
   const { data: tasksData, isLoading, refetch } = useTasks();
@@ -16,10 +16,7 @@ export function Tasks() {
 
   // 分页
   const totalPages = Math.ceil(tasks.length / pageSize);
-  const paginatedTasks = tasks.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  const paginatedTasks = tasks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // 根据groupId获取群组名称
   const getGroupName = (groupId: number) => {
@@ -29,10 +26,7 @@ export function Tasks() {
 
   // 状态显示
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<
-      string,
-      { text: string; className: string; emoji: string }
-    > = {
+    const statusMap: Record<string, { text: string; className: string; emoji: string }> = {
       pending: {
         text: '等待中',
         className: 'bg-gray-100 text-gray-800',
@@ -80,7 +74,9 @@ export function Tasks() {
     };
     const config = typeConfig[taskType as keyof typeof typeConfig] || typeConfig.manual;
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${config.className}`}>
+      <span
+        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${config.className}`}
+      >
         {config.text}
       </span>
     );
@@ -94,7 +90,9 @@ export function Tasks() {
 
     const end = task.completedAt
       ? new Date(task.completedAt).getTime()
-      : (task.status === 'completed' || task.status === 'failed' ? Date.now() : null);
+      : task.status === 'completed' || task.status === 'failed'
+        ? Date.now()
+        : null;
 
     if (!end) return '-';
 
@@ -146,9 +144,7 @@ export function Tasks() {
     <div>
       <div className="px-4 sm:px-0">
         <h2 className="text-2xl font-bold text-gray-900">任务列表</h2>
-        <p className="mt-1 text-sm text-gray-600">
-          查看所有摘要生成任务的执行状态和进度
-        </p>
+        <p className="mt-1 text-sm text-gray-600">查看所有摘要生成任务的执行状态和进度</p>
       </div>
 
       {/* 任务列表 */}
@@ -165,180 +161,191 @@ export function Tasks() {
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
             <div className="overflow-x-auto">
               <table className="min-w-max w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
-                    ID
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px] max-w-[200px]">
-                    群组
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-14">
-                    类型
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
-                    状态
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
-                    进度
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
-                    已拉取
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
-                    创建时间
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
-                    耗时
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
-                    操作
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedTasks.map((task: SummaryJob) => (
-                  <>
-                    {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role */}
-                    <tr
-                      key={task.id}
-                      className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => toggleExpand(task.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          toggleExpand(task.id);
-                        }
-                      }}
-                      tabIndex={0}
-                      role="button"
-                    >
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                        #{task.id}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        <div className="truncate" title={getGroupName(task.groupId)}>
-                          {getGroupName(task.groupId)}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm">
-                        {getTaskType(task)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {getStatusBadge(task.status)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-12 bg-gray-200 rounded-full h-2 mr-1">
-                            <div
-                              className={`h-2 rounded-full ${
-                                task.status === 'completed'
-                                  ? 'bg-green-500'
-                                  : task.status === 'failed'
-                                    ? 'bg-red-500'
-                                    : 'bg-blue-500'
-                              }`}
-                              style={{ width: `${task.progress}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-gray-600">
-                            {task.progress}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {task.fetchedCount}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {formatTime(task.scheduledAt)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {getDuration(task)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteTask(task.id);
-                          }}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          删除
-                        </button>
-                      </td>
-                    </tr>
-
-                    {/* 展开的详情行 */}
-                    {expandedTaskId === task.id && (
-                      <tr>
-                        <td colSpan={9} className="px-6 py-4 bg-gray-50">
-                          <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <h4 className="text-sm font-medium text-gray-700 mb-2">时间信息</h4>
-                                <dl className="space-y-1">
-                                  <div className="flex justify-between text-sm">
-                                    <dt className="text-gray-500">创建时间:</dt>
-                                    <dd className="text-gray-900">{formatTime(task.scheduledAt)}</dd>
-                                  </div>
-                                  <div className="flex justify-between text-sm">
-                                    <dt className="text-gray-500">开始时间:</dt>
-                                    <dd className="text-gray-900">{formatTime(task.startedAt)}</dd>
-                                  </div>
-                                  <div className="flex justify-between text-sm">
-                                    <dt className="text-gray-500">完成时间:</dt>
-                                    <dd className="text-gray-900">{formatTime(task.completedAt)}</dd>
-                                  </div>
-                                  <div className="flex justify-between text-sm">
-                                    <dt className="text-gray-500">时间周期:</dt>
-                                    <dd className="text-gray-900">
-                                      {formatTime(task.periodStart)} ~ {formatTime(task.periodEnd)}
-                                    </dd>
-                                  </div>
-                                </dl>
-                              </div>
-
-                              <div>
-                                <h4 className="text-sm font-medium text-gray-700 mb-2">执行信息</h4>
-                                <dl className="space-y-1">
-                                  <div className="flex justify-between text-sm">
-                                    <dt className="text-gray-500">已拉取消息:</dt>
-                                    <dd className="text-gray-900">{task.fetchedCount} 条</dd>
-                                  </div>
-                                  <div className="flex justify-between text-sm">
-                                    <dt className="text-gray-500">进度:</dt>
-                                    <dd className="text-gray-900">{task.progress}%</dd>
-                                  </div>
-                                  <div className="flex justify-between text-sm">
-                                    <dt className="text-gray-500">重试次数:</dt>
-                                    <dd className="text-gray-900">{task.retryCount} 次</dd>
-                                  </div>
-                                  <div className="flex justify-between text-sm">
-                                    <dt className="text-gray-500">当前消息ID:</dt>
-                                    <dd className="text-gray-900">{task.currentMessageId || '-'}</dd>
-                                  </div>
-                                </dl>
-                              </div>
-                            </div>
-
-                            {/* 错误信息 */}
-                            {task.errorMessage && (
-                              <div className="mt-3">
-                                <h4 className="text-sm font-medium text-red-700 mb-2">错误信息</h4>
-                                <pre className="text-sm text-red-600 bg-red-50 p-3 rounded border border-red-200 overflow-x-auto">
-                                  {task.errorMessage}
-                                </pre>
-                              </div>
-                            )}
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                      ID
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px] max-w-[200px]">
+                      群组
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-14">
+                      类型
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                      状态
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                      进度
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                      已拉取
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                      创建时间
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                      耗时
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                      操作
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {paginatedTasks.map((task: SummaryJob) => (
+                    <>
+                      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role */}
+                      <tr
+                        key={task.id}
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => toggleExpand(task.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleExpand(task.id);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                          #{task.id}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900">
+                          <div className="truncate" title={getGroupName(task.groupId)}>
+                            {getGroupName(task.groupId)}
                           </div>
                         </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">{getTaskType(task)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {getStatusBadge(task.status)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="w-12 bg-gray-200 rounded-full h-2 mr-1">
+                              <div
+                                className={`h-2 rounded-full ${
+                                  task.status === 'completed'
+                                    ? 'bg-green-500'
+                                    : task.status === 'failed'
+                                      ? 'bg-red-500'
+                                      : 'bg-blue-500'
+                                }`}
+                                style={{ width: `${task.progress}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-600">{task.progress}%</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {task.fetchedCount}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {formatTime(task.scheduledAt)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {getDuration(task)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTask(task.id);
+                            }}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            删除
+                          </button>
+                        </td>
                       </tr>
-                    )}
-                  </>
-                ))}
-              </tbody>
-            </table>
+
+                      {/* 展开的详情行 */}
+                      {expandedTaskId === task.id && (
+                        <tr>
+                          <td colSpan={9} className="px-6 py-4 bg-gray-50">
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                                    时间信息
+                                  </h4>
+                                  <dl className="space-y-1">
+                                    <div className="flex justify-between text-sm">
+                                      <dt className="text-gray-500">创建时间:</dt>
+                                      <dd className="text-gray-900">
+                                        {formatTime(task.scheduledAt)}
+                                      </dd>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                      <dt className="text-gray-500">开始时间:</dt>
+                                      <dd className="text-gray-900">
+                                        {formatTime(task.startedAt)}
+                                      </dd>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                      <dt className="text-gray-500">完成时间:</dt>
+                                      <dd className="text-gray-900">
+                                        {formatTime(task.completedAt)}
+                                      </dd>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                      <dt className="text-gray-500">时间周期:</dt>
+                                      <dd className="text-gray-900">
+                                        {formatTime(task.periodStart)} ~{' '}
+                                        {formatTime(task.periodEnd)}
+                                      </dd>
+                                    </div>
+                                  </dl>
+                                </div>
+
+                                <div>
+                                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                                    执行信息
+                                  </h4>
+                                  <dl className="space-y-1">
+                                    <div className="flex justify-between text-sm">
+                                      <dt className="text-gray-500">已拉取消息:</dt>
+                                      <dd className="text-gray-900">{task.fetchedCount} 条</dd>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                      <dt className="text-gray-500">进度:</dt>
+                                      <dd className="text-gray-900">{task.progress}%</dd>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                      <dt className="text-gray-500">重试次数:</dt>
+                                      <dd className="text-gray-900">{task.retryCount} 次</dd>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                      <dt className="text-gray-500">当前消息ID:</dt>
+                                      <dd className="text-gray-900">
+                                        {task.currentMessageId || '-'}
+                                      </dd>
+                                    </div>
+                                  </dl>
+                                </div>
+                              </div>
+
+                              {/* 错误信息 */}
+                              {task.errorMessage && (
+                                <div className="mt-3">
+                                  <h4 className="text-sm font-medium text-red-700 mb-2">
+                                    错误信息
+                                  </h4>
+                                  <pre className="text-sm text-red-600 bg-red-50 p-3 rounded border border-red-200 overflow-x-auto">
+                                    {task.errorMessage}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {/* 分页 */}
@@ -365,13 +372,19 @@ export function Tasks() {
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm text-gray-700">
-                      显示第 <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> 到{' '}
-                      <span className="font-medium">{Math.min(currentPage * pageSize, tasks.length)}</span> 条，
-                      共 <span className="font-medium">{tasks.length}</span> 条任务
+                      显示第 <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span>{' '}
+                      到{' '}
+                      <span className="font-medium">
+                        {Math.min(currentPage * pageSize, tasks.length)}
+                      </span>{' '}
+                      条， 共 <span className="font-medium">{tasks.length}</span> 条任务
                     </p>
                   </div>
                   <div>
-                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <nav
+                      className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                      aria-label="Pagination"
+                    >
                       <button
                         type="button"
                         onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}

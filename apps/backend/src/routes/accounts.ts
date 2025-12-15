@@ -1,12 +1,12 @@
-import { Hono } from 'hono';
-import { db, telegramAccounts, groups } from '@omniknight/db';
+import { db, groups, telegramAccounts } from '@omniknight/db';
 import { eq, sql } from 'drizzle-orm';
-import { telegramAccountManager } from '../services/telegram/account-manager';
-import { logger } from '../utils/logger';
+import { Hono } from 'hono';
 import type { TelegramClient } from 'telegram';
 import { TelegramClient as TelegramClientClass } from 'telegram';
 import { StringSession } from 'telegram/sessions';
 import { env } from '../config/env';
+import { telegramAccountManager } from '../services/telegram/account-manager';
+import { logger } from '../utils/logger';
 
 const app = new Hono();
 
@@ -41,7 +41,7 @@ app.get('/', async (c) => {
           // 隐藏敏感的 sessionString
           sessionString: undefined,
         };
-      })
+      }),
     );
 
     return c.json({ data: accountsWithStats });
@@ -77,7 +77,7 @@ app.post('/auth/send-code', async (c) => {
       session,
       Number.parseInt(env.TELEGRAM_API_ID),
       env.TELEGRAM_API_HASH,
-      { connectionRetries: 5 }
+      { connectionRetries: 5 },
     );
 
     await client.connect();
@@ -88,7 +88,7 @@ app.post('/auth/send-code', async (c) => {
         apiId: Number.parseInt(env.TELEGRAM_API_ID),
         apiHash: env.TELEGRAM_API_HASH,
       },
-      phoneNumber
+      phoneNumber,
     );
 
     // 保存会话
@@ -102,14 +102,17 @@ app.post('/auth/send-code', async (c) => {
     logger.info(`验证码已发送: ${phoneNumber} [Session: ${sessionId}]`);
 
     // 5分钟后清理会话
-    setTimeout(() => {
-      const session = authSessions.get(sessionId);
-      if (session) {
-        session.client.disconnect().catch(() => {});
-        authSessions.delete(sessionId);
-        logger.info(`认证会话已过期: ${sessionId}`);
-      }
-    }, 5 * 60 * 1000);
+    setTimeout(
+      () => {
+        const session = authSessions.get(sessionId);
+        if (session) {
+          session.client.disconnect().catch(() => {});
+          authSessions.delete(sessionId);
+          logger.info(`认证会话已过期: ${sessionId}`);
+        }
+      },
+      5 * 60 * 1000,
+    );
 
     return c.json({
       data: {
@@ -150,7 +153,7 @@ app.post('/auth/verify-code', async (c) => {
           phoneNumber: authSession.phoneNumber,
           phoneCodeHash: authSession.phoneCodeHash,
           phoneCode: code,
-        })
+        }),
       );
 
       // 登录成功，保存账号
@@ -206,7 +209,10 @@ app.post('/auth/verify-code', async (c) => {
     }
   } catch (error) {
     logger.error('验证码验证失败', error instanceof Error ? error : undefined);
-    return c.json({ error: error instanceof Error ? error.message : 'Code verification failed' }, 500);
+    return c.json(
+      { error: error instanceof Error ? error.message : 'Code verification failed' },
+      500,
+    );
   }
 });
 
@@ -228,14 +234,14 @@ app.post('/auth/verify-password', async (c) => {
 
     // 获取密码信息
     const passwordInfo = await authSession.client.invoke(
-      new (await import('telegram/tl')).Api.account.GetPassword()
+      new (await import('telegram/tl')).Api.account.GetPassword(),
     );
 
     // 使用密码登录
     await authSession.client.invoke(
       new (await import('telegram/tl')).Api.auth.CheckPassword({
         password: await (await import('telegram/Password')).computeCheck(passwordInfo, password),
-      })
+      }),
     );
 
     // 登录成功，保存账号
@@ -276,7 +282,10 @@ app.post('/auth/verify-password', async (c) => {
     });
   } catch (error) {
     logger.error('密码验证失败', error instanceof Error ? error : undefined);
-    return c.json({ error: error instanceof Error ? error.message : 'Password verification failed' }, 500);
+    return c.json(
+      { error: error instanceof Error ? error.message : 'Password verification failed' },
+      500,
+    );
   }
 });
 
@@ -379,7 +388,9 @@ app.get('/:accountId/dialogs/:channelId/topics', async (c) => {
     const wrapper = await telegramAccountManager.getClient(accountId);
     const topics = await wrapper.getForumTopics(channelId);
 
-    logger.info(`获取Forum Topics成功 [账号ID: ${accountId}] [频道ID: ${channelId}]: ${topics.length} 个话题`);
+    logger.info(
+      `获取Forum Topics成功 [账号ID: ${accountId}] [频道ID: ${channelId}]: ${topics.length} 个话题`,
+    );
 
     return c.json({ data: topics });
   } catch (error) {

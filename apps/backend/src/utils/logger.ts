@@ -4,7 +4,9 @@ class Logger {
   private log(level: LogLevel, message: string, meta?: Record<string, unknown>) {
     const timestamp = new Date().toISOString();
     const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
-    console[level === 'debug' ? 'log' : level](`[${timestamp}] [${level.toUpperCase()}] ${message}${metaStr}`);
+    console[level === 'debug' ? 'log' : level](
+      `[${timestamp}] [${level.toUpperCase()}] ${message}${metaStr}`,
+    );
   }
 
   info(message: string, meta?: Record<string, unknown>) {
@@ -16,9 +18,7 @@ class Logger {
   }
 
   error(message: string, error?: Error | Record<string, unknown>) {
-    const meta = error instanceof Error
-      ? { error: error.message, stack: error.stack }
-      : error;
+    const meta = error instanceof Error ? { error: error.message, stack: error.stack } : error;
     this.log('error', message, meta);
   }
 

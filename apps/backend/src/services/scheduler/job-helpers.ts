@@ -1,4 +1,4 @@
-import { db, summaryJobs, groups } from '@omniknight/db';
+import { db, groups, summaryJobs } from '@omniknight/db';
 import { eq } from 'drizzle-orm';
 import { logger } from '../../utils/logger';
 import { generateSummary } from '../ai/summarizer';
@@ -10,7 +10,7 @@ export async function createSummaryJob(
   groupId: number,
   periodStart: Date,
   periodEnd: Date,
-  taskType: 'manual' | 'scheduled' = 'manual'
+  taskType: 'manual' | 'scheduled' = 'manual',
 ) {
   const [job] = await db
     .insert(summaryJobs)
@@ -50,7 +50,7 @@ export async function updateJobProgress(
     errorMessage?: string;
     startedAt?: Date;
     completedAt?: Date;
-  }
+  },
 ) {
   await db.update(summaryJobs).set(update).where(eq(summaryJobs.id, jobId));
 }
@@ -103,7 +103,7 @@ export async function executeSummaryJob(jobId: number): Promise<void> {
           progress: progressUpdate.progress,
           fetchedCount: progressUpdate.fetchedCount,
         });
-      }
+      },
     );
 
     if (!summary) {

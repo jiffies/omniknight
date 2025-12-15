@@ -47,9 +47,7 @@ export function TaskProgressModal({ job, onClose }: TaskProgressModalProps) {
                 style={{ width: `${job.progress}%` }}
               />
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {job.progress}%
-            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{job.progress}%</p>
           </div>
         )}
 
@@ -74,9 +72,7 @@ export function TaskProgressModal({ job, onClose }: TaskProgressModalProps) {
             <p className="text-gray-700 dark:text-gray-300">AI 生成中...</p>
           )}
 
-          {isCompleted && (
-            <p className="text-green-600 dark:text-green-400">摘要已生成成功！</p>
-          )}
+          {isCompleted && <p className="text-green-600 dark:text-green-400">摘要已生成成功！</p>}
 
           {isFailed && (
             <div>

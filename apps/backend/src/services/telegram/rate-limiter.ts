@@ -100,9 +100,7 @@ export class RateLimiter {
 
     // 检查是否需要冷却
     if (this.state.consecutiveFloods >= this.config.maxConsecutiveFloods) {
-      throw new Error(
-        `连续触发 ${this.state.consecutiveFloods} 次 FLOOD_WAIT，进入冷却期`
-      );
+      throw new Error(`连续触发 ${this.state.consecutiveFloods} 次 FLOOD_WAIT，进入冷却期`);
     }
 
     // 降低一个等级
@@ -110,7 +108,7 @@ export class RateLimiter {
 
     // 增加等待时间
     this.state.currentWaitMs = Math.floor(
-      this.state.currentWaitMs * this.config.floodBackoffFactor
+      this.state.currentWaitMs * this.config.floodBackoffFactor,
     );
 
     // 等待 Telegram 要求的时间（加10%缓冲）
@@ -143,7 +141,7 @@ export class RateLimiter {
       // 已经是最低等级，只能减小批次大小
       const reducedBatchSize = Math.max(
         this.config.minBatchSize,
-        Math.floor(this.state.currentBatchSize * 0.5)
+        Math.floor(this.state.currentBatchSize * 0.5),
       );
 
       logger.warn('已达最低等级，减小批次', {

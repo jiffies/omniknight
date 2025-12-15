@@ -1,5 +1,5 @@
-import type { Message } from '@omniknight/shared';
 import { db, filterRules } from '@omniknight/db';
+import type { Message } from '@omniknight/shared';
 import { eq } from 'drizzle-orm';
 
 interface FilterResult {
@@ -37,7 +37,7 @@ export async function applyQuickFilters(message: Partial<Message>): Promise<Filt
 function applyRule(
   message: Partial<Message>,
   type: string,
-  config: Record<string, unknown>
+  config: Record<string, unknown>,
 ): FilterResult {
   const text = message.text || '';
 
@@ -57,7 +57,7 @@ function applyRule(
       const mode = config.mode as string;
 
       const matched = keywords.some((kw: string) =>
-        caseSensitive ? text.includes(kw) : text.toLowerCase().includes(kw.toLowerCase())
+        caseSensitive ? text.includes(kw) : text.toLowerCase().includes(kw.toLowerCase()),
       );
 
       if (mode === 'blacklist' && matched) {

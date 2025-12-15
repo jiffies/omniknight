@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useAccounts, useDeleteAccount, useUpdateAccount } from '../hooks/useAccounts';
 import { AddAccountDialog } from '../components/AddAccountDialog';
+import { useAccounts, useDeleteAccount, useUpdateAccount } from '../hooks/useAccounts';
 
 export function Accounts() {
   const { data: accountsData, isLoading } = useAccounts();

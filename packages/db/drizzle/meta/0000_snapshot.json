@@ -108,23 +108,17 @@
       "indexes": {
         "groups_telegram_id_unique": {
           "name": "groups_telegram_id_unique",
-          "columns": [
-            "telegram_id"
-          ],
+          "columns": ["telegram_id"],
           "isUnique": true
         },
         "idx_groups_telegram_id": {
           "name": "idx_groups_telegram_id",
-          "columns": [
-            "telegram_id"
-          ],
+          "columns": ["telegram_id"],
           "isUnique": false
         },
         "idx_groups_active": {
           "name": "idx_groups_active",
-          "columns": [
-            "is_active"
-          ],
+          "columns": ["is_active"],
           "isUnique": false
         }
       },
@@ -242,24 +236,17 @@
       "indexes": {
         "idx_messages_group_date": {
           "name": "idx_messages_group_date",
-          "columns": [
-            "group_id",
-            "date"
-          ],
+          "columns": ["group_id", "date"],
           "isUnique": false
         },
         "idx_messages_filtered": {
           "name": "idx_messages_filtered",
-          "columns": [
-            "is_filtered"
-          ],
+          "columns": ["is_filtered"],
           "isUnique": false
         },
         "idx_messages_summary": {
           "name": "idx_messages_summary",
-          "columns": [
-            "included_in_summary_id"
-          ],
+          "columns": ["included_in_summary_id"],
           "isUnique": false
         }
       },
@@ -268,12 +255,8 @@
           "name": "messages_group_id_groups_id_fk",
           "tableFrom": "messages",
           "tableTo": "groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -281,12 +264,8 @@
           "name": "messages_included_in_summary_id_summaries_id_fk",
           "tableFrom": "messages",
           "tableTo": "summaries",
-          "columnsFrom": [
-            "included_in_summary_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["included_in_summary_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -402,17 +381,12 @@
       "indexes": {
         "idx_summaries_group_date": {
           "name": "idx_summaries_group_date",
-          "columns": [
-            "group_id",
-            "period_end"
-          ],
+          "columns": ["group_id", "period_end"],
           "isUnique": false
         },
         "idx_summaries_status": {
           "name": "idx_summaries_status",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         }
       },
@@ -421,12 +395,8 @@
           "name": "summaries_group_id_groups_id_fk",
           "tableFrom": "summaries",
           "tableTo": "groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -502,17 +472,12 @@
       "indexes": {
         "filter_rules_name_unique": {
           "name": "filter_rules_name_unique",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": true
         },
         "idx_filter_rules_enabled_priority": {
           "name": "idx_filter_rules_enabled_priority",
-          "columns": [
-            "is_enabled",
-            "priority"
-          ],
+          "columns": ["is_enabled", "priority"],
           "isUnique": false
         }
       },

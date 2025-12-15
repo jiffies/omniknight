@@ -1,10 +1,10 @@
-import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions';
 import { db, systemConfig } from '@omniknight/db';
-import { env } from '../../config/env';
-import { logger } from '../../utils/logger';
 import { eq } from 'drizzle-orm';
 import input from 'input';
+import { TelegramClient } from 'telegram';
+import { StringSession } from 'telegram/sessions';
+import { env } from '../../config/env';
+import { logger } from '../../utils/logger';
 
 class TelegramService {
   private client: TelegramClient | null = null;
@@ -26,7 +26,7 @@ class TelegramService {
       env.TELEGRAM_API_HASH,
       {
         connectionRetries: 5,
-      }
+      },
     );
 
     logger.info('✅ Telegram 客户端初始化完成');
@@ -122,13 +122,18 @@ class TelegramService {
           offsetId: 0,
           offsetTopic: 0,
           limit: 100,
-        })
+        }),
       );
 
       // 解析topics
       return result.topics.map((topic) => {
         // topic是ForumTopic类型，包含id, title等属性
-        const topicData = topic as { id: number; title?: string; iconColor?: number; iconEmojiId?: string };
+        const topicData = topic as {
+          id: number;
+          title?: string;
+          iconColor?: number;
+          iconEmojiId?: string;
+        };
         return {
           id: topicData.id,
           title: topicData.title || '未命名话题',

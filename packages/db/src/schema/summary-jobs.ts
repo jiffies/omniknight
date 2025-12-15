@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { groups } from './groups';
 
 export const summaryJobs = sqliteTable(
@@ -49,5 +49,5 @@ export const summaryJobs = sqliteTable(
     groupStatusIdx: index('idx_summary_jobs_group_status').on(table.groupId, table.status),
     statusIdx: index('idx_summary_jobs_status').on(table.status),
     scheduledIdx: index('idx_summary_jobs_scheduled').on(table.scheduledAt),
-  })
+  }),
 );

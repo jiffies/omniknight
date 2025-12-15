@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { groups } from './groups';
 
 export const summaries = sqliteTable(
@@ -37,12 +37,10 @@ export const summaries = sqliteTable(
       .default('completed'),
     errorMessage: text('error_message'),
 
-    createdAt: integer('created_at', { mode: 'timestamp' })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   },
   (table) => ({
     groupDateIdx: index('idx_summaries_group_date').on(table.groupId, table.periodEnd),
     statusIdx: index('idx_summaries_status').on(table.status),
-  })
+  }),
 );

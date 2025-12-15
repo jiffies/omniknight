@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
-import type { AIProvider, GenerateOptions, GenerateResponse } from './base';
 import { logger } from '../../../utils/logger';
+import type { AIProvider, GenerateOptions, GenerateResponse } from './base';
 
 /**
  * OpenAI 兼容的 AI Provider

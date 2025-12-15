@@ -93,11 +93,7 @@ export function AddFilterRuleDialog({ onClose, onSuccess }: AddFilterRuleDialogP
       <div className="bg-white rounded-lg p-6 max-w-xl w-full mx-4 max-h-[80vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold">添加过滤规则</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
+          <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-700">
             ✕
           </button>
         </div>
@@ -156,7 +152,9 @@ export function AddFilterRuleDialog({ onClose, onSuccess }: AddFilterRuleDialogP
               <h4 className="text-sm font-medium mb-2">长度配置</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="min-length" className="block text-xs text-gray-700 mb-1">最小长度</label>
+                  <label htmlFor="min-length" className="block text-xs text-gray-700 mb-1">
+                    最小长度
+                  </label>
                   <input
                     id="min-length"
                     type="number"
@@ -166,7 +164,9 @@ export function AddFilterRuleDialog({ onClose, onSuccess }: AddFilterRuleDialogP
                   />
                 </div>
                 <div>
-                  <label htmlFor="max-length" className="block text-xs text-gray-700 mb-1">最大长度</label>
+                  <label htmlFor="max-length" className="block text-xs text-gray-700 mb-1">
+                    最大长度
+                  </label>
                   <input
                     id="max-length"
                     type="number"
@@ -184,7 +184,9 @@ export function AddFilterRuleDialog({ onClose, onSuccess }: AddFilterRuleDialogP
               <h4 className="text-sm font-medium mb-2">关键词配置</h4>
 
               <div className="mb-3">
-                <label htmlFor="keyword-mode" className="block text-xs text-gray-700 mb-1">模式</label>
+                <label htmlFor="keyword-mode" className="block text-xs text-gray-700 mb-1">
+                  模式
+                </label>
                 <select
                   id="keyword-mode"
                   value={keywordMode}
@@ -197,7 +199,9 @@ export function AddFilterRuleDialog({ onClose, onSuccess }: AddFilterRuleDialogP
               </div>
 
               <div className="mb-3">
-                <label htmlFor="keyword-input" className="block text-xs text-gray-700 mb-1">关键词列表</label>
+                <label htmlFor="keyword-input" className="block text-xs text-gray-700 mb-1">
+                  关键词列表
+                </label>
                 <div className="flex gap-2">
                   <input
                     id="keyword-input"

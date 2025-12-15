@@ -1,8 +1,8 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { db, filterRules } from '@omniknight/db';
 import { createFilterRuleSchema, updateFilterRuleSchema } from '@omniknight/shared';
 import { eq } from 'drizzle-orm';
+import { Hono } from 'hono';
 import { logger } from '../utils/logger';
 
 const app = new Hono();

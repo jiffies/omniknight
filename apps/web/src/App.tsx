@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom';
+import { Accounts } from './pages/Accounts';
 import { Dashboard } from './pages/Dashboard';
 import { Groups } from './pages/Groups';
-import { Accounts } from './pages/Accounts';
-import { Tasks } from './pages/Tasks';
 import { Settings } from './pages/Settings';
+import { Tasks } from './pages/Tasks';
 
 const queryClient = new QueryClient();
 
@@ -19,9 +19,7 @@ export default function App() {
               <div className="flex justify-between h-16">
                 <div className="flex">
                   <div className="flex-shrink-0 flex items-center">
-                    <h1 className="text-xl font-bold text-indigo-600">
-                      🤖 Omniknight
-                    </h1>
+                    <h1 className="text-xl font-bold text-indigo-600">🤖 Omniknight</h1>
                   </div>
                   <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                     <NavLink

@@ -1,0 +1,29 @@
+{
+  "name": "omniknight",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Telegram 群组 AI 总结系统",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "format": "biome format --write .",
+    "check": "biome check .",
+    "db:generate": "turbo run db:generate",
+    "db:migrate": "turbo run db:migrate",
+    "db:studio": "turbo run db:studio",
+    "stop:backend": "lsof -ti:3000 | xargs -r kill -9",
+    "stop:web": "lsof -ti:5173,5174 | xargs -r kill -9",
+    "stop": "pnpm run stop:backend && pnpm run stop:web"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

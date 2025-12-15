@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1765644045741,
+      "tag": "0000_overconfident_nico_minoru",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1765714309454,
+      "tag": "0001_low_darkhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1765733257116,
+      "tag": "0002_loving_shotgun",
+      "breakpoints": true
+    }
+  ]
+}

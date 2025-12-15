@@ -1,0 +1,119 @@
+import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { db, groups, summaries } from '@omniknight/db';
+import { createGroupSchema, updateGroupSchema } from '@omniknight/shared';
+import { eq, sql } from 'drizzle-orm';
+import { logger } from '../utils/logger';
+
+const app = new Hono();
+
+// GET /api/groups - 获取所有群组列表
+app.get('/', async (c) => {
+  const allGroups = await db.query.groups.findMany({
+    orderBy: (groups, { desc }) => [desc(groups.updatedAt)],
+  });
+
+  // 为每个群组添加统计信息
+  const groupsWithStats = await Promise.all(
+    allGroups.map(async (group) => {
+      // 消息不再存储在数据库中，使用按需拉取模式
+      const [summaryCountResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(summaries)
+        .where(eq(summaries.groupId, group.id));
+
+      return {
+        ...group,
+        messageCount: 0, // 消息不再存储
+        summaryCount: summaryCountResult?.count || 0,
+      };
+    })
+  );
+
+  return c.json({ data: groupsWithStats });
+});
+
+// GET /api/groups/:id - 获取单个群组详情
+app.get('/:id', async (c) => {
+  const id = parseInt(c.req.param('id'));
+
+  const group = await db.query.groups.findFirst({
+    where: eq(groups.id, id),
+  });
+
+  if (!group) {
+    return c.json({ error: 'Group not found' }, 404);
+  }
+
+  return c.json({ data: group });
+});
+
+// POST /api/groups - 创建群组
+app.post(
+  '/',
+  zValidator('json', createGroupSchema, (result, c) => {
+    if (!result.success) {
+      logger.error('群组数据验证失败', { errors: result.error });
+      return c.json({ error: 'Validation failed', details: result.error }, 400);
+    }
+  }),
+  async (c) => {
+    try {
+      logger.info('收到创建群组请求');
+      const data = c.req.valid('json');
+      logger.info('群组数据验证通过', { data });
+
+      const [group] = await db
+        .insert(groups)
+        .values({
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      logger.info('群组已创建', { groupId: group.id, title: group.title });
+
+      return c.json({ data: group }, 201);
+    } catch (error) {
+      logger.error('创建群组失败', error instanceof Error ? error : undefined);
+      return c.json({ error: error instanceof Error ? error.message : 'Failed to create group' }, 500);
+    }
+  }
+);
+
+// PATCH /api/groups/:id - 更新群组配置
+app.patch('/:id', zValidator('json', updateGroupSchema), async (c) => {
+  const id = parseInt(c.req.param('id'));
+  const updates = c.req.valid('json');
+
+  const [updatedGroup] = await db
+    .update(groups)
+    .set({
+      ...updates,
+      updatedAt: new Date(),
+    })
+    .where(eq(groups.id, id))
+    .returning();
+
+  if (!updatedGroup) {
+    return c.json({ error: 'Group not found' }, 404);
+  }
+
+  logger.info('群组配置已更新', { groupId: id, updates });
+
+  return c.json({ data: updatedGroup });
+});
+
+// DELETE /api/groups/:id - 删除群组
+app.delete('/:id', async (c) => {
+  const id = parseInt(c.req.param('id'));
+
+  await db.delete(groups).where(eq(groups.id, id));
+
+  logger.info('群组已删除', { groupId: id });
+
+  return c.json({ success: true });
+});
+
+export default app;

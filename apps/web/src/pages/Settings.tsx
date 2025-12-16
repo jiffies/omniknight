@@ -21,6 +21,36 @@ export function Settings() {
   const filterRules = filterRulesData?.data || [];
   const systemConfig = systemConfigData?.data || [];
 
+  // 生成规则详情描述
+  const getRuleDetails = (rule: {
+    type: string;
+    config: string | Record<string, unknown>;
+  }): string => {
+    try {
+      const config =
+        typeof rule.config === 'string' ? JSON.parse(rule.config) : rule.config;
+
+      switch (rule.type) {
+        case 'length':
+          return `最小长度: ${config.minLength || 0}, 最大长度: ${config.maxLength || 0}`;
+        case 'keyword': {
+          const keywords = (config.keywords as string[]) || [];
+          const mode = config.mode === 'blacklist' ? '黑名单' : '白名单';
+          const caseSensitive = config.caseSensitive ? '区分大小写' : '不区分大小写';
+          return `模式: ${mode}, ${caseSensitive}\n关键词: ${keywords.join(', ')}`;
+        }
+        case 'emoji':
+          return config.emojiOnly ? '过滤纯表情消息' : '过滤包含表情的消息';
+        case 'media':
+          return '过滤仅包含媒体文件而无文本的消息';
+        default:
+          return '未知规则类型';
+      }
+    } catch {
+      return '配置解析失败';
+    }
+  };
+
   const handleToggleRule = async (ruleId: number, isEnabled: boolean) => {
     try {
       const res = await apiClient.api['filter-rules'][':id'].$patch({
@@ -159,10 +189,15 @@ export function Settings() {
                     id: number;
                     name: string;
                     type: string;
+                    config: string | Record<string, unknown>;
                     priority: number;
                     isEnabled: boolean;
                   }) => (
-                    <tr key={rule.id} className="hover:bg-gray-50">
+                    <tr
+                      key={rule.id}
+                      className="hover:bg-gray-50 cursor-help"
+                      title={getRuleDetails(rule)}
+                    >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {rule.name}
                       </td>

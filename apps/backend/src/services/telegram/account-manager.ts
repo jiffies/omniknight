@@ -258,7 +258,10 @@ class TelegramAccountManager {
       session,
       Number.parseInt(env.TELEGRAM_API_ID),
       env.TELEGRAM_API_HASH,
-      { connectionRetries: 5 },
+      {
+        connectionRetries: 5,
+        timeout: 60,
+      },
     );
 
     try {

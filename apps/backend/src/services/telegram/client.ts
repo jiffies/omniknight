@@ -25,6 +25,7 @@ class TelegramService {
       env.TELEGRAM_API_HASH,
       {
         connectionRetries: 5,
+        timeout: 60,
       },
     );
 

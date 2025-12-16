@@ -1,10 +1,12 @@
 import type { SummaryJob } from '@omniknight/shared';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGroups } from '../hooks/useGroups';
 import { useTasks } from '../hooks/useTasks';
 import { apiClient, handleResponse } from '../lib/api-client';
 
 export function Tasks() {
+  const navigate = useNavigate();
   const { data: tasksData, isLoading, refetch } = useTasks();
   const { data: groupsData } = useGroups();
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
@@ -160,7 +162,7 @@ export function Tasks() {
         ) : (
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
             <div className="overflow-x-auto">
-              <table className="min-w-max w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
@@ -212,7 +214,7 @@ export function Tasks() {
                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                           #{task.id}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        <td className="px-4 py-3 text-sm text-gray-900 min-w-[150px] max-w-[200px]">
                           <div className="truncate" title={getGroupName(task.groupId)}>
                             {getGroupName(task.groupId)}
                           </div>
@@ -248,16 +250,38 @@ export function Tasks() {
                           {getDuration(task)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteTask(task.id);
-                            }}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            删除
-                          </button>
+                          <div className="flex gap-2">
+                            {task.status === 'completed' && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const periodStart = task.periodStart
+                                    ? new Date(task.periodStart).getTime()
+                                    : '';
+                                  const periodEnd = task.periodEnd
+                                    ? new Date(task.periodEnd).getTime()
+                                    : '';
+                                  navigate(
+                                    `/?groupId=${task.groupId}&periodStart=${periodStart}&periodEnd=${periodEnd}`,
+                                  );
+                                }}
+                                className="text-indigo-600 hover:text-indigo-900"
+                              >
+                                查看总结
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTask(task.id);
+                              }}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              删除
+                            </button>
+                          </div>
                         </td>
                       </tr>
 

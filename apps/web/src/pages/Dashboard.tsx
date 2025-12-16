@@ -1,16 +1,61 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useSearchParams } from 'react-router-dom';
 import { useGroups } from '../hooks/useGroups';
 import { useSummaries } from '../hooks/useSummaries';
 
 export function Dashboard() {
-  const [selectedGroupId, setSelectedGroupId] = useState<number | undefined>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const groupIdParam = searchParams.get('groupId');
+  const periodStartParam = searchParams.get('periodStart');
+  const periodEndParam = searchParams.get('periodEnd');
+
+  const [selectedGroupId, setSelectedGroupId] = useState<number | undefined>(
+    groupIdParam ? Number.parseInt(groupIdParam) : undefined,
+  );
+  const [highlightedSummaryId, setHighlightedSummaryId] = useState<number | null>(null);
+  const summaryRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  // 当URL参数变化时更新选中的群组
+  useEffect(() => {
+    if (groupIdParam) {
+      setSelectedGroupId(Number.parseInt(groupIdParam));
+    }
+  }, [groupIdParam]);
 
   const { data: groupsData, isLoading: isLoadingGroups } = useGroups();
   const { data: summariesData, isLoading: isLoadingSummaries } = useSummaries(selectedGroupId);
 
   const groups = groupsData?.data || [];
   const summaries = summariesData?.data || [];
+
+  // 当总结加载完成后，滚动到匹配的总结
+  useEffect(() => {
+    if (!isLoadingSummaries && summaries.length > 0 && periodStartParam && periodEndParam) {
+      const targetPeriodStart = Number.parseInt(periodStartParam);
+      const targetPeriodEnd = Number.parseInt(periodEndParam);
+
+      // 查找匹配的总结
+      const matchingSummary = summaries.find((summary) => {
+        const summaryStart = new Date(summary.periodStart).getTime();
+        const summaryEnd = new Date(summary.periodEnd).getTime();
+        return summaryStart === targetPeriodStart && summaryEnd === targetPeriodEnd;
+      });
+
+      if (matchingSummary) {
+        // 滚动到该总结
+        const element = summaryRefs.current.get(matchingSummary.id);
+        if (element) {
+          setTimeout(() => {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setHighlightedSummaryId(matchingSummary.id);
+            // 3秒后取消高亮
+            setTimeout(() => setHighlightedSummaryId(null), 3000);
+          }, 100);
+        }
+      }
+    }
+  }, [isLoadingSummaries, summaries, periodStartParam, periodEndParam]);
 
   return (
     <div>
@@ -28,9 +73,16 @@ export function Dashboard() {
           id="group-select"
           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md bg-white"
           value={selectedGroupId || ''}
-          onChange={(e) =>
-            setSelectedGroupId(e.target.value ? Number.parseInt(e.target.value) : undefined)
-          }
+          onChange={(e) => {
+            const newGroupId = e.target.value ? Number.parseInt(e.target.value) : undefined;
+            setSelectedGroupId(newGroupId);
+            // 更新URL参数
+            if (newGroupId) {
+              setSearchParams({ groupId: newGroupId.toString() });
+            } else {
+              setSearchParams({});
+            }
+          }}
         >
           <option value="">所有群组</option>
           {groups.map((group) => (
@@ -53,7 +105,19 @@ export function Dashboard() {
           </div>
         ) : (
           summaries.map((summary) => (
-            <div key={summary.id} className="bg-white shadow sm:rounded-lg overflow-hidden">
+            <div
+              key={summary.id}
+              ref={(el) => {
+                if (el) {
+                  summaryRefs.current.set(summary.id, el);
+                }
+              }}
+              className={`bg-white shadow sm:rounded-lg overflow-hidden transition-all duration-300 ${
+                highlightedSummaryId === summary.id
+                  ? 'ring-4 ring-indigo-500 ring-opacity-50'
+                  : ''
+              }`}
+            >
               {/* 头部信息 */}
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between">

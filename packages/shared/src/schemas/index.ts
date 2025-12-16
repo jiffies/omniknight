@@ -4,14 +4,14 @@ import { z } from 'zod';
 export const createGroupSchema = z.object({
   telegramId: z.string(),
   title: z.string().min(1),
-  username: z.string().optional(),
+  username: z.string().nullish(), // 允许 null 或 undefined
   type: z.enum(['group', 'channel', 'supergroup', 'forum']),
   accountId: z.number(), // 账号ID（必填）
   topicId: z.number().optional(),
   parentGroupId: z.number().optional(),
   isTopic: z.boolean().default(false),
-  groupName: z.string().optional(), // 父 group/forum 的名称
-  topicName: z.string().optional(), // topic 的名称（仅当 isTopic=true 时有值）
+  groupName: z.string().nullish(), // 父 group/forum 的名称，允许 null 或 undefined
+  topicName: z.string().nullish(), // topic 的名称（仅当 isTopic=true 时有值），允许 null 或 undefined
 });
 
 export const updateGroupSchema = z.object({

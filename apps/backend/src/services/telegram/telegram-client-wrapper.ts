@@ -46,7 +46,7 @@ export class TelegramClientWrapper {
       env.TELEGRAM_API_HASH,
       {
         connectionRetries: 5,
-        timeout: 30, // 设置30秒超时
+        timeout: 60, // 增加到60秒超时
         requestRetries: 3, // 请求重试3次
       },
     );

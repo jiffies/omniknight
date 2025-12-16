@@ -1,4 +1,5 @@
 import { db, groups, summaries } from '@omniknight/db';
+import type { Message } from '@omniknight/shared';
 import { eq } from 'drizzle-orm';
 import { logger } from '../../utils/logger';
 import { telegramAccountManager } from '../telegram/account-manager';
@@ -110,7 +111,7 @@ export async function generateSummary(
   logger.info('[8/10] 正在构建 AI Prompt...');
   const userPrompt = buildSummaryPrompt(
     group,
-    validMessages as any, // fetchedMessages 与 Message 类型兼容
+    validMessages as Message[], // FetchedMessage 与 Message 类型字段兼容
     periodStart,
     periodEnd,
   );
@@ -126,7 +127,7 @@ export async function generateSummary(
       { role: 'system', content: buildSystemPrompt(group) },
       { role: 'user', content: userPrompt },
     ],
-    temperature: 0.7,
+    // temperature 参数由 AIClient 从数据库配置中读取
   });
   logger.info('[9/10] ✅ AI 生成完成', {
     模型: aiResponse.model,
@@ -162,7 +163,12 @@ export async function generateSummary(
       createdAt: new Date(),
     })
     .returning();
-  logger.info('[10/10] ✅ 总结已保存', { summaryId: summary?.id });
+
+  if (!summary) {
+    throw new Error('Failed to save summary');
+  }
+
+  logger.info('[10/10] ✅ 总结已保存', { summaryId: summary.id });
 
   // 11. 更新群组最后总结时间
   logger.info('正在更新群组状态...');
@@ -200,11 +206,14 @@ function sampleMessages<T extends { id: number; date: Date }>(
   }
 
   const step = messages.length / targetCount;
-  const sampled: Message[] = [];
+  const sampled: T[] = [];
 
   for (let i = 0; i < targetCount; i++) {
     const index = Math.floor(i * step);
-    sampled.push(messages[index]!);
+    const message = messages[index];
+    if (message) {
+      sampled.push(message);
+    }
   }
 
   return sampled;

@@ -33,7 +33,7 @@ export function Dashboard() {
           }
         >
           <option value="">所有群组</option>
-          {groups.map((group: any) => (
+          {groups.map((group) => (
             <option key={group.id} value={group.id}>
               {group.title} ({group.summaryCount || 0} 个总结)
             </option>
@@ -52,7 +52,7 @@ export function Dashboard() {
             暂无总结，请先生成一些总结
           </div>
         ) : (
-          summaries.map((summary: any) => (
+          summaries.map((summary) => (
             <div key={summary.id} className="bg-white shadow sm:rounded-lg overflow-hidden">
               {/* 头部信息 */}
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">

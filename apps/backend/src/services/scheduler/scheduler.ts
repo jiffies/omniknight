@@ -68,7 +68,7 @@ class SchedulerService {
   /**
    * 检查单个群组是否需要生成摘要
    */
-  private async checkGroupSchedule(group: any): Promise<void> {
+  private async checkGroupSchedule(group: typeof groups.$inferSelect): Promise<void> {
     try {
       // 检查是否启用摘要
       if (!group.summaryEnabled) {

@@ -3,7 +3,7 @@ import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import type { TelegramClient } from 'telegram';
 import { TelegramClient as TelegramClientClass } from 'telegram';
-import { StringSession } from 'telegram/sessions';
+import { StringSession } from 'telegram/sessions/index.js';
 import { env } from '../config/env';
 import { telegramAccountManager } from '../services/telegram/account-manager';
 import { logger } from '../utils/logger';
@@ -35,11 +35,10 @@ app.get('/', async (c) => {
           .from(groups)
           .where(eq(groups.accountId, account.id));
 
+        const { sessionString: _sessionString, ...accountWithoutSession } = account;
         return {
-          ...account,
+          ...accountWithoutSession,
           groupCount: groupCountResult?.count || 0,
-          // 隐藏敏感的 sessionString
-          sessionString: undefined,
         };
       }),
     );
@@ -177,6 +176,10 @@ app.post('/auth/verify-code', async (c) => {
         })
         .returning();
 
+      if (!account) {
+        return c.json({ error: 'Failed to create account' }, 500);
+      }
+
       logger.info(`账号认证成功: ${authSession.phoneNumber} [ID: ${account.id}]`);
 
       // 初始化账号连接
@@ -264,6 +267,10 @@ app.post('/auth/verify-password', async (c) => {
         updatedAt: new Date(),
       })
       .returning();
+
+    if (!account) {
+      return c.json({ error: 'Failed to create account' }, 500);
+    }
 
     logger.info(`账号认证成功（含2FA）: ${authSession.phoneNumber} [ID: ${account.id}]`);
 

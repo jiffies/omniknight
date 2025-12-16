@@ -1,3 +1,4 @@
+import type { SummaryWithGroup } from '@omniknight/shared';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, handleResponse } from '../lib/api-client';
 
@@ -11,7 +12,7 @@ export function useSummaries(groupId?: number, limit = 20) {
       }
 
       const res = await apiClient.api.summaries.$get({ query });
-      return handleResponse<{ data: any[] }>(res);
+      return handleResponse<{ data: SummaryWithGroup[] }>(res);
     },
   });
 }

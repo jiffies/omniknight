@@ -30,6 +30,12 @@ export type GroupWithStats = Group & {
   messageCount: number;
   summaryCount: number;
   lastMessage?: Message;
+  accountInfo: {
+    id: number;
+    phoneNumber: string;
+    username: string | null;
+    isConnected: boolean;
+  } | null;
 };
 
 // 过滤器配置类型

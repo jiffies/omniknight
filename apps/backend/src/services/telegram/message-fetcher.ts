@@ -165,7 +165,7 @@ export async function fetchMessagesWithRateLimit(
           return {
             id: msg.id,
             text,
-            date: new Date(msg.date! * 1000),
+            date: new Date((msg.date ?? 0) * 1000),
             senderId: msg.peerId?.toString(),
             senderName: '', // 可以从 msg.fromId 获取，但需要额外查询
             isForwarded: !!msg.fwdFrom,

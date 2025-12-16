@@ -1,7 +1,7 @@
 import { db, groups, telegramAccounts } from '@omniknight/db';
 import { eq } from 'drizzle-orm';
 import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions';
+import { StringSession } from 'telegram/sessions/index.js';
 import { env } from '../../config/env';
 import { logger } from '../../utils/logger';
 import { TelegramClientWrapper } from './telegram-client-wrapper';
@@ -287,6 +287,10 @@ class TelegramAccountManager {
           updatedAt: new Date(),
         })
         .returning();
+
+      if (!account) {
+        throw new Error('Failed to create account');
+      }
 
       logger.info(`💾 账号已保存到数据库 [ID: ${account.id}]`);
 

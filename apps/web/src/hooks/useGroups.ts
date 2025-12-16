@@ -1,3 +1,4 @@
+import type { GroupWithStats } from '@omniknight/shared';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, handleResponse } from '../lib/api-client';
 
@@ -6,7 +7,7 @@ export function useGroups() {
     queryKey: ['groups'],
     queryFn: async () => {
       const res = await apiClient.api.groups.$get();
-      return handleResponse<{ data: any[] }>(res);
+      return handleResponse<{ data: GroupWithStats[] }>(res);
     },
   });
 }

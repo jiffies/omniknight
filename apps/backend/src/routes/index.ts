@@ -7,34 +7,40 @@ import summariesRoute from './summaries';
 import systemConfigRoute from './system-config';
 import telegramRoute from './telegram';
 
-const app = new Hono();
+// 创建 API router（不带前缀）
+const apiRoutes = new Hono()
+  .route('/accounts', accountsRoute)
+  .route('/groups', groupsRoute)
+  .route('/summaries', summariesRoute)
+  .route('/telegram', telegramRoute)
+  .route('/filter-rules', filterRulesRoute)
+  .route('/system-config', systemConfigRoute);
 
-// CORS 配置
-app.use('/*', cors());
+// 主应用
+const app = new Hono()
+  // CORS 配置
+  .use('/*', cors())
 
-// 健康检查
-app.get('/health', (c) => {
-  return c.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+  // 健康检查
+  .get('/health', (c) => {
+    return c.json({ status: 'ok', timestamp: new Date().toISOString() });
+  })
 
-// 注册路由
-app.route('/api/accounts', accountsRoute);
-app.route('/api/groups', groupsRoute);
-app.route('/api/summaries', summariesRoute);
-app.route('/api/telegram', telegramRoute);
-app.route('/api/filter-rules', filterRulesRoute);
-app.route('/api/system-config', systemConfigRoute);
+  // 挂载 API 路由
+  .route('/api', apiRoutes)
 
-// 404 处理
-app.notFound((c) => {
-  return c.json({ error: 'Not found' }, 404);
-});
+  // 404 处理
+  .notFound((c) => {
+    return c.json({ error: 'Not found' }, 404);
+  })
 
-// 错误处理
-app.onError((err, c) => {
-  console.error('Unhandled error:', err);
-  return c.json({ error: 'Internal server error' }, 500);
-});
+  // 错误处理
+  .onError((err, c) => {
+    console.error('Unhandled error:', err);
+    return c.json({ error: 'Internal server error' }, 500);
+  });
 
 export default app;
 export type AppType = typeof app;
+// 导出 API routes 类型供 RPC 使用
+export type ApiRoutesType = typeof apiRoutes;

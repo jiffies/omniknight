@@ -1,8 +1,7 @@
 import { db, systemConfig } from '@omniknight/db';
 import { eq } from 'drizzle-orm';
-import input from 'input';
 import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions';
+import { StringSession } from 'telegram/sessions/index.js';
 import { env } from '../../config/env';
 import { logger } from '../../utils/logger';
 
@@ -30,25 +29,6 @@ class TelegramService {
     );
 
     logger.info('✅ Telegram 客户端初始化完成');
-  }
-
-  async authenticate() {
-    if (!this.client) {
-      throw new Error('Client not initialized');
-    }
-
-    await this.client.start({
-      phoneNumber: async () => await input.text('请输入手机号（带国家码，例如 +86）：'),
-      password: async () => await input.text('请输入两步验证密码（如果有）：'),
-      phoneCode: async () => await input.text('请输入验证码：'),
-      onError: (err) => logger.error('Telegram 认证错误', err),
-    });
-
-    // 保存 session 到数据库
-    if (this.session) {
-      await this.saveSession(this.session.save());
-    }
-    logger.info('Telegram 认证成功');
   }
 
   async connect() {
@@ -84,7 +64,7 @@ class TelegramService {
         let type: 'group' | 'channel' | 'supergroup' | 'forum' = 'group';
         let isForum = false;
 
-        if ('className' in entity && entity.className === 'Channel') {
+        if (entity && 'className' in entity && entity.className === 'Channel') {
           if (entity.broadcast) {
             type = 'channel';
           } else if (entity.forum) {
@@ -98,7 +78,7 @@ class TelegramService {
         return {
           id: dialog.id?.toString(),
           title: dialog.title || '未知',
-          username: entity.username,
+          username: entity && 'username' in entity ? (entity.username as string | undefined) : undefined,
           type,
           isForum,
         };

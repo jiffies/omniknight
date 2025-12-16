@@ -11,7 +11,7 @@ export class OpenAIProvider implements AIProvider {
   private client: OpenAI;
   private defaultModel: string;
 
-  constructor(config: { apiKey: string; baseURL: string; model: string }) {
+  constructor(config: { apiKey: string; baseURL?: string; model: string }) {
     this.client = new OpenAI({
       apiKey: config.apiKey,
       baseURL: config.baseURL,

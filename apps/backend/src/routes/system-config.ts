@@ -7,7 +7,7 @@ import { logger } from '../utils/logger';
 const app = new Hono();
 
 // 可编辑的配置键白名单（安全控制）
-const EDITABLE_KEYS = [
+const EDITABLE_KEYS: string[] = [
   'ai_provider', // mock/openai/deepseek/gemini
   'ai_model', // 模型名称
   'ai_temperature', // 温度参数
@@ -27,7 +27,7 @@ function tryParseJSON(str: string): unknown {
 // GET /api/system-config - 获取所有可编辑配置
 app.get('/', async (c) => {
   try {
-    const configs = await db.query.systemConfig.findMany();
+    const configs = await db.select().from(systemConfig);
 
     const editableConfigs = configs.filter((cfg) => EDITABLE_KEYS.includes(cfg.key));
 

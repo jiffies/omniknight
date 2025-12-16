@@ -1,5 +1,5 @@
 import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions';
+import { StringSession } from 'telegram/sessions/index.js';
 import { env } from '../../config/env';
 import { logger } from '../../utils/logger';
 
@@ -121,8 +121,8 @@ export class TelegramClientWrapper {
           return;
         }
 
-        // 发送轻量级的 ping 请求保持连接活跃
-        await this.client.invoke({ _: 'ping', pingId: BigInt(Date.now()) } as any);
+        // 发送轻量级的请求保持连接活跃
+        await this.client.getMe();
         logger.debug(`💓 心跳发送成功 [账号ID: ${this.accountId}]`);
       } catch (error) {
         logger.warn(

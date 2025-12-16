@@ -124,8 +124,10 @@ export class RateLimiter {
     if (this.state.currentStepIndex < this.config.batchSizeSteps.length - 1) {
       this.state.currentStepIndex++;
 
-      const newBatchSize = this.config.batchSizeSteps[this.state.currentStepIndex]!;
-      const newWaitMs = this.config.waitMsSteps[this.state.currentStepIndex]!;
+      const newBatchSize =
+        this.config.batchSizeSteps[this.state.currentStepIndex] ?? this.config.minBatchSize;
+      const newWaitMs =
+        this.config.waitMsSteps[this.state.currentStepIndex] ?? this.config.maxWaitMs;
 
       logger.warn('降级限流等级', {
         oldBatchSize: this.state.currentBatchSize,
@@ -165,8 +167,8 @@ export class RateLimiter {
    */
   reset(): void {
     this.state = {
-      currentBatchSize: this.config.batchSizeSteps[0]!,
-      currentWaitMs: this.config.waitMsSteps[0]!,
+      currentBatchSize: this.config.batchSizeSteps[0] ?? 1000,
+      currentWaitMs: this.config.waitMsSteps[0] ?? 2000,
       currentStepIndex: 0,
       consecutiveSuccesses: 0,
       consecutiveFloods: 0,

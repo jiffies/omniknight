@@ -64,7 +64,7 @@ app.get('/:id', async (c) => {
 app.post(
   '/',
   zValidator('json', createGroupSchema, (result, c) => {
-    if (!result.success) {
+    if (!result.success && 'error' in result) {
       logger.error('群组数据验证失败', { errors: result.error });
       return c.json({ error: 'Validation failed', details: result.error }, 400);
     }
@@ -110,6 +110,10 @@ app.post(
           updatedAt: new Date(),
         })
         .returning();
+
+      if (!group) {
+        return c.json({ error: 'Failed to create group' }, 500);
+      }
 
       logger.info('群组已创建', {
         groupId: group.id,

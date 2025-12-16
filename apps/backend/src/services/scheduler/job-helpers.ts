@@ -27,6 +27,10 @@ export async function createSummaryJob(
     })
     .returning();
 
+  if (!job) {
+    throw new Error('Failed to create summary job');
+  }
+
   logger.info('创建摘要任务', {
     jobId: job.id,
     groupId,

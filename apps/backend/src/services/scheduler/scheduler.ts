@@ -11,6 +11,7 @@ class SchedulerService {
   private intervalId: NodeJS.Timeout | null = null;
   private checkInterval = 60 * 1000; // 每分钟检查一次
   private isRunning = false;
+  private checkCount = 0; // 检查计数器
 
   /**
    * 启动调度器
@@ -55,7 +56,14 @@ class SchedulerService {
         where: eq(groups.isActive, true),
       });
 
-      logger.debug('检查定时任务', { activeGroupsCount: activeGroups.length });
+      // 每小时打印一次检查日志（60次检查 = 1小时）
+      this.checkCount++;
+      if (this.checkCount % 60 === 0) {
+        logger.info('🔍 调度器运行中', {
+          activeGroupsCount: activeGroups.length,
+          checkCount: this.checkCount,
+        });
+      }
 
       for (const group of activeGroups) {
         await this.checkGroupSchedule(group);

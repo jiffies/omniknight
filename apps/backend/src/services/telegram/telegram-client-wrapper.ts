@@ -3,32 +3,9 @@ import { StringSession } from 'telegram/sessions/index.js';
 import { env } from '../../config/env';
 import { logger } from '../../utils/logger';
 
-// 全局定时器函数声明（避免TypeScript类型错误）
-declare const setInterval: (
-  handler: (...args: unknown[]) => void,
-  timeout: number,
-  ...args: unknown[]
-) => number;
-declare const clearInterval: (handle: number) => void;
-declare const setTimeout: (
-  handler: (...args: unknown[]) => void,
-  timeout: number,
-  ...args: unknown[]
-) => number;
-declare const clearTimeout: (handle: number) => void;
-
 export class TelegramClientWrapper {
   private client: TelegramClient | null = null;
   private session: StringSession;
-  private keepAliveTimer?: number;
-  private reconnectTimer?: number;
-  private isReconnecting = false;
-
-  // 配置参数
-  private readonly KEEP_ALIVE_INTERVAL = 60 * 1000; // 每60秒发送一次心跳
-  private readonly RECONNECT_DELAY = 5 * 1000; // 重连延迟5秒
-  private readonly MAX_RECONNECT_ATTEMPTS = 3; // 最大重连次数
-  private reconnectAttempts = 0;
 
   constructor(
     public readonly accountId: number,
@@ -46,8 +23,8 @@ export class TelegramClientWrapper {
       env.TELEGRAM_API_HASH,
       {
         connectionRetries: 5,
-        timeout: 60, // 增加到60秒超时
-        requestRetries: 3, // 请求重试3次
+        timeout: 60,
+        requestRetries: 3,
       },
     );
 
@@ -61,25 +38,27 @@ export class TelegramClientWrapper {
 
     logger.info(`🔌 正在连接到 Telegram 服务器 [账号ID: ${this.accountId}]...`);
     if (!this.client.connected) {
+      // 禁用 _updateLoop：我们使用"按需拉取模式"，不需要实时更新
+      // @ts-expect-error 访问私有属性
+      this.client._loopStarted = true;
+
       await this.client.connect();
       logger.info(`✅ Telegram 客户端已成功连接 [账号ID: ${this.accountId}]`);
-
-      // 连接成功后启动心跳保活
-      this.startKeepAlive();
-      this.reconnectAttempts = 0; // 重置重连计数
     } else {
       logger.info(`ℹ️ Telegram 客户端已经处于连接状态 [账号ID: ${this.accountId}]`);
     }
   }
 
   async disconnect() {
-    // 停止心跳和重连定时器
-    this.stopKeepAlive();
-    this.stopReconnect();
-
-    if (this.client?.connected) {
-      await this.client.disconnect();
-      logger.info(`🔌 Telegram 已断开连接 [账号ID: ${this.accountId}]`);
+    if (this.client) {
+      try {
+        if (this.client.connected) {
+          await this.client.disconnect();
+        }
+      } finally {
+        await this.client.destroy();
+        logger.info(`🔌 Telegram 已断开并销毁 [账号ID: ${this.accountId}]`);
+      }
     }
   }
 
@@ -99,120 +78,6 @@ export class TelegramClientWrapper {
 
   getSession(): StringSession {
     return this.session;
-  }
-
-  /**
-   * 启动心跳保活机制
-   */
-  private startKeepAlive() {
-    // 清理旧的定时器
-    this.stopKeepAlive();
-
-    logger.debug(
-      `💓 启动心跳保活 [账号ID: ${this.accountId}]，间隔: ${this.KEEP_ALIVE_INTERVAL / 1000}秒`,
-    );
-
-    this.keepAliveTimer = setInterval(async () => {
-      try {
-        if (!this.client?.connected) {
-          logger.warn(`⚠️ 心跳检测到连接已断开 [账号ID: ${this.accountId}]，准备重连`);
-          this.stopKeepAlive();
-          await this.attemptReconnect();
-          return;
-        }
-
-        // 发送轻量级的请求保持连接活跃
-        await this.client.getMe();
-        logger.debug(`💓 心跳发送成功 [账号ID: ${this.accountId}]`);
-      } catch (error) {
-        logger.warn(
-          `⚠️ 心跳失败 [账号ID: ${this.accountId}]`,
-          error instanceof Error ? { message: error.message, stack: error.stack } : undefined,
-        );
-
-        // 心跳失败，尝试重连
-        this.stopKeepAlive();
-        await this.attemptReconnect();
-      }
-    }, this.KEEP_ALIVE_INTERVAL);
-  }
-
-  /**
-   * 停止心跳保活
-   */
-  private stopKeepAlive() {
-    if (this.keepAliveTimer) {
-      clearInterval(this.keepAliveTimer);
-      this.keepAliveTimer = undefined;
-      logger.debug(`💔 停止心跳保活 [账号ID: ${this.accountId}]`);
-    }
-  }
-
-  /**
-   * 停止重连定时器
-   */
-  private stopReconnect() {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = undefined;
-    }
-  }
-
-  /**
-   * 尝试重连
-   */
-  private async attemptReconnect() {
-    if (this.isReconnecting) {
-      logger.debug(`🔄 已有重连任务在进行 [账号ID: ${this.accountId}]`);
-      return;
-    }
-
-    if (this.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
-      logger.error(`❌ 重连失败次数过多 [账号ID: ${this.accountId}]，停止重连`);
-      return;
-    }
-
-    this.isReconnecting = true;
-    this.reconnectAttempts++;
-
-    logger.info(
-      `🔄 尝试重连 (${this.reconnectAttempts}/${this.MAX_RECONNECT_ATTEMPTS}) [账号ID: ${this.accountId}]`,
-    );
-
-    try {
-      // 先断开旧连接
-      if (this.client?.connected) {
-        await this.client.disconnect();
-      }
-
-      // 延迟后重连
-      await new Promise((resolve) => setTimeout(resolve, this.RECONNECT_DELAY));
-
-      // 重新连接
-      if (this.client) {
-        await this.client.connect();
-        logger.info(`✅ 重连成功 [账号ID: ${this.accountId}]`);
-
-        // 重启心跳
-        this.startKeepAlive();
-        this.reconnectAttempts = 0; // 重置计数
-      }
-    } catch (error) {
-      logger.error(
-        `❌ 重连失败 [账号ID: ${this.accountId}]`,
-        error instanceof Error ? { message: error.message, stack: error.stack } : undefined,
-      );
-
-      // 如果还有重试机会，调度下一次重连
-      if (this.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
-        this.reconnectTimer = setTimeout(() => {
-          this.isReconnecting = false;
-          this.attemptReconnect();
-        }, this.RECONNECT_DELAY * this.reconnectAttempts);
-      }
-    } finally {
-      this.isReconnecting = false;
-    }
   }
 
   async getDialogs() {
@@ -258,7 +123,6 @@ export class TelegramClientWrapper {
     try {
       const entity = await this.client.getEntity(channelId);
 
-      // 调用Telegram API获取Forum Topics
       const { Api } = await import('telegram');
       const result = await this.client.invoke(
         new Api.channels.GetForumTopics({
@@ -270,7 +134,6 @@ export class TelegramClientWrapper {
         }),
       );
 
-      // 解析topics
       return result.topics.map((topic) => {
         const topicData = topic as {
           id: number;

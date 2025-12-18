@@ -1,12 +1,22 @@
 import { useState } from 'react';
 import { AddFilterRuleDialog } from '../components/AddFilterRuleDialog';
 import { useFilterRules } from '../hooks/useFilterRules';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useSystemConfig } from '../hooks/useSystemConfig';
 import { apiClient, handleResponse } from '../lib/api-client';
 
 export function Settings() {
   const { data: filterRulesData, refetch: refetchRules } = useFilterRules();
   const { data: systemConfigData, refetch: refetchConfig } = useSystemConfig();
+  const {
+    isSupported: isPushSupported,
+    isSubscribed: isPushSubscribed,
+    isLoading: isPushLoading,
+    error: pushError,
+    permission: pushPermission,
+    subscribe: subscribePush,
+    unsubscribe: unsubscribePush,
+  } = usePushNotifications();
 
   const [showAddRuleDialog, setShowAddRuleDialog] = useState(false);
   const [editingConfig, setEditingConfig] = useState(false);
@@ -409,6 +419,84 @@ export function Settings() {
                   配置在下次AI调用或消息拉取时自动应用。
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 通知设置 */}
+      <div className="mt-8 mb-8">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">通知设置</h3>
+        <div className="bg-white shadow sm:rounded-lg p-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-gray-900">推送通知</h4>
+                <p className="text-sm text-gray-500">
+                  {!isPushSupported
+                    ? '您的浏览器不支持推送通知'
+                    : isPushSubscribed
+                      ? '任务完成或失败时，即使浏览器在后台也会收到通知'
+                      : '启用后，任务完成或失败时会收到浏览器推送通知'}
+                </p>
+                {pushError && <p className="text-sm text-red-600 mt-1">{pushError}</p>}
+              </div>
+              <div className="flex items-center gap-3">
+                {isPushLoading ? (
+                  <span className="text-sm text-gray-500">加载中...</span>
+                ) : !isPushSupported ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                    不支持
+                  </span>
+                ) : isPushSubscribed ? (
+                  <button
+                    type="button"
+                    onClick={unsubscribePush}
+                    className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                  >
+                    关闭推送
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={subscribePush}
+                    className="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                  >
+                    启用推送
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {isPushSupported && (
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${
+                      pushPermission === 'granted'
+                        ? 'bg-green-500'
+                        : pushPermission === 'denied'
+                          ? 'bg-red-500'
+                          : 'bg-yellow-500'
+                    }`}
+                  />
+                  <span>
+                    通知权限：
+                    {pushPermission === 'granted'
+                      ? '已授权'
+                      : pushPermission === 'denied'
+                        ? '已拒绝（请在浏览器设置中允许）'
+                        : '未请求'}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <p className="text-sm text-blue-800">
+                💡 <strong>提示：</strong>
+                推送通知使用 Web Push API，即使浏览器标签页在后台或关闭（但浏览器进程运行），也能收到通知。
+              </p>
             </div>
           </div>
         </div>

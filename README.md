@@ -10,6 +10,7 @@
 - ✅ **异步任务** - 后台生成总结,实时进度反馈
 - ✅ **定时调度** - 按群组配置自动定期生成总结
 - ✅ **Web Dashboard** - React 前端,可视化查看总结和管理群组
+- ✅ **浏览器推送通知** - 任务完成/失败时通过 Web Push 推送通知,即使浏览器在后台也能收到
 
 ## 快速开始
 
@@ -37,6 +38,17 @@ AI_PROVIDER=deepseek  # mock | openai | deepseek | gemini
 AI_API_KEY=sk-xxxxx
 AI_API_BASE_URL=https://api.deepseek.com/v1
 AI_MODEL=deepseek-chat
+```
+
+可选配置 (Web Push 浏览器推送通知):
+```bash
+# 1. 生成 VAPID 密钥
+cd apps/backend && pnpm exec web-push generate-vapid-keys --json
+
+# 2. 将生成的密钥添加到 .env
+VAPID_PUBLIC_KEY=your_public_key
+VAPID_PRIVATE_KEY=your_private_key
+VAPID_SUBJECT=mailto:admin@example.com
 ```
 
 ### 3. 初始化 Telegram

@@ -1,13 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import type { SummaryJob } from '@omniknight/shared';
 import { apiClient } from '../lib/api-client';
 import { useGroups } from './useGroups';
 
 /**
+ * 模块级别的状态 - 确保多个 hook 实例共享同一份状态
+ */
+const globalState = {
+  previousTasks: new Map<number, string>(),
+  isInitialized: false,
+  notificationRequested: false,
+};
+
+/**
  * 请求浏览器通知权限
  */
 function requestNotificationPermission() {
+  if (globalState.notificationRequested) return;
+  globalState.notificationRequested = true;
+
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
@@ -30,8 +42,6 @@ function sendNotification(title: string, body: string, tag?: string) {
  * 获取所有任务列表
  */
 export function useTasks() {
-  const previousTasksRef = useRef<Map<number, string>>(new Map());
-  const isInitializedRef = useRef(false);
   const { data: groupsData } = useGroups();
 
   const query = useQuery({
@@ -44,6 +54,8 @@ export function useTasks() {
       return await res.json();
     },
     refetchInterval: 3000, // 每3秒刷新一次任务列表
+    refetchOnWindowFocus: true, // 窗口获得焦点时立即刷新
+    refetchIntervalInBackground: false, // 后台时停止自动刷新，节省资源
   });
 
   // 获取群组名称
@@ -61,7 +73,7 @@ export function useTasks() {
     return taskType === 'scheduled' ? '定时任务' : '手动任务';
   }, []);
 
-  // 请求通知权限(仅在挂载时执行一次)
+  // 请求通知权限(仅执行一次)
   useEffect(() => {
     requestNotificationPermission();
     console.log(
@@ -77,23 +89,28 @@ export function useTasks() {
     const tasks = query.data.data as SummaryJob[];
 
     // 首次加载时只记录状态，不发送通知
-    if (!isInitializedRef.current) {
+    if (!globalState.isInitialized) {
       for (const task of tasks) {
-        previousTasksRef.current.set(task.id, task.status);
+        globalState.previousTasks.set(task.id, task.status);
       }
-      isInitializedRef.current = true;
+      globalState.isInitialized = true;
       console.log('[通知] 初始化完成，已记录', tasks.length, '个任务的状态');
       return;
     }
 
     // 检测状态变化并发送通知
     for (const task of tasks) {
-      const previousStatus = previousTasksRef.current.get(task.id);
+      const previousStatus = globalState.previousTasks.get(task.id);
 
       // 新任务（之前不存在）- 只记录状态，不发送通知
       if (previousStatus === undefined) {
-        previousTasksRef.current.set(task.id, task.status);
+        globalState.previousTasks.set(task.id, task.status);
         console.log(`[通知] 发现新任务 #${task.id}，状态: ${task.status}`);
+        continue;
+      }
+
+      // 状态未变化，跳过
+      if (previousStatus === task.status) {
         continue;
       }
 
@@ -123,7 +140,7 @@ export function useTasks() {
       }
 
       // 更新任务状态记录
-      previousTasksRef.current.set(task.id, task.status);
+      globalState.previousTasks.set(task.id, task.status);
     }
   }, [query.data, getGroupName, getTaskTypeText]);
 

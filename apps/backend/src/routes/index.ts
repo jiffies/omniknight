@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import accountsRoute from './accounts';
 import filterRulesRoute from './filter-rules';
 import groupsRoute from './groups';
+import pushRoute from './push';
 import summariesRoute from './summaries';
 import systemConfigRoute from './system-config';
 import telegramRoute from './telegram';
@@ -14,7 +15,8 @@ const apiRoutes = new Hono()
   .route('/summaries', summariesRoute)
   .route('/telegram', telegramRoute)
   .route('/filter-rules', filterRulesRoute)
-  .route('/system-config', systemConfigRoute);
+  .route('/system-config', systemConfigRoute)
+  .route('/push', pushRoute);
 
 // 主应用
 const app = new Hono()

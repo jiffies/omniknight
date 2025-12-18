@@ -2,6 +2,10 @@ import { db, groups, summaryJobs } from '@omniknight/db';
 import { eq } from 'drizzle-orm';
 import { logger } from '../../utils/logger';
 import { generateSummary } from '../ai/summarizer';
+import {
+  sendTaskCompletedNotification,
+  sendTaskFailedNotification,
+} from '../push/push-service';
 
 /**
  * 创建摘要任务
@@ -128,9 +132,18 @@ export async function executeSummaryJob(jobId: number): Promise<void> {
       summaryId: summary.id,
       title: summary.title,
     });
+
+    // 发送推送通知
+    const group = await db.query.groups.findFirst({
+      where: eq(groups.id, job.groupId),
+    });
+    if (group) {
+      await sendTaskCompletedNotification(group.title, job.taskType, jobId);
+    }
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('❌ 任务执行失败', {
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage,
       jobId,
       groupId: job.groupId,
     });
@@ -139,8 +152,16 @@ export async function executeSummaryJob(jobId: number): Promise<void> {
     logger.info('📝 更新任务状态: → failed');
     await updateJobProgress(jobId, {
       status: 'failed',
-      errorMessage: (error as Error).message,
+      errorMessage,
       completedAt: new Date(),
     });
+
+    // 发送推送通知
+    const group = await db.query.groups.findFirst({
+      where: eq(groups.id, job.groupId),
+    });
+    if (group) {
+      await sendTaskFailedNotification(group.title, job.taskType, jobId, errorMessage);
+    }
   }
 }

@@ -1,17 +1,35 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom';
 import { Accounts } from './pages/Accounts';
 import { Dashboard } from './pages/Dashboard';
 import { Groups } from './pages/Groups';
 import { Settings } from './pages/Settings';
 import { Tasks } from './pages/Tasks';
+import { useTasks } from './hooks/useTasks';
 
 const queryClient = new QueryClient();
 
-export default function App() {
+function AppContent() {
+  // 全局监听任务状态变化,在任意页面都能收到通知
+  useTasks();
+
+  // 注册 Service Worker
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((registration) => {
+          console.log('[App] Service Worker 注册成功:', registration.scope);
+        })
+        .catch((error) => {
+          console.error('[App] Service Worker 注册失败:', error);
+        });
+    }
+  }, []);
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+    <BrowserRouter>
         <div className="min-h-screen bg-gray-50">
           {/* 导航栏 */}
           <nav className="bg-white shadow-sm border-b">
@@ -91,6 +109,13 @@ export default function App() {
           </main>
         </div>
       </BrowserRouter>
+  );
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppContent />
     </QueryClientProvider>
   );
 }

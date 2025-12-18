@@ -16,6 +16,11 @@ const envSchema = z.object({
 
   // Gemini 专用配置
   GEMINI_API_KEY: z.string().optional(),
+
+  // Web Push VAPID 配置
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default('mailto:admin@example.com'),
 });
 
 export const env = envSchema.parse(process.env);

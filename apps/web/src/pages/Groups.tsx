@@ -268,10 +268,10 @@ export function Groups() {
       ) : groups.length === 0 ? (
         <div className="mt-6 bg-white shadow sm:rounded-lg p-6">
           <div className="text-center">
-            <p className="text-gray-500 mb-4">还没有添加任何群组。请运行初始化脚本添加群组：</p>
-            <code className="bg-gray-100 px-3 py-1 rounded text-sm">
-              cd apps/backend && pnpm setup
-            </code>
+            <p className="text-gray-500 mb-4">还没有添加任何群组</p>
+            <p className="text-sm text-gray-400">
+              请先在"账号管理"页面添加 Telegram 账号，然后点击上方的"添加新群组/话题"按钮
+            </p>
           </div>
         </div>
       ) : (

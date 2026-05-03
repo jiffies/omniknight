@@ -315,7 +315,7 @@ export function Settings() {
                         setConfigFormData({ ...configFormData, ai_model: e.target.value })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                      placeholder="例如: gpt-4"
+                      placeholder="例如: gemini-2.5-flash"
                     />
                   ) : (
                     <div className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm text-gray-900">

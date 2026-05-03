@@ -238,10 +238,20 @@ AI_MODEL=deepseek-chat
 # AI_API_BASE_URL=https://api.openai.com/v1
 # AI_MODEL=gpt-4o-mini
 
-# 如果使用 Gemini
+# 如果使用 Gemini（Vertex AI + ADC，推荐）
+# 先执行: gcloud auth application-default login
+# 并确保项目已启用 Vertex AI API
 # AI_PROVIDER=gemini
-# GEMINI_API_KEY=AIzaSyxxxxxxxxxxxxx
+# GOOGLE_GENAI_USE_VERTEXAI=true
+# GOOGLE_CLOUD_PROJECT=your-gcp-project-id
+# GOOGLE_CLOUD_LOCATION=global
 # AI_MODEL=gemini-2.5-flash
+```
+
+可选：验证 Vertex AI 连通性
+
+```bash
+pnpm --filter @omniknight/backend ai:smoke
 ```
 
 #### 可选配置项（Web Push 浏览器推送通知）

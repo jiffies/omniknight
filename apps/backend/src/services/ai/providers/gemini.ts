@@ -1,21 +1,21 @@
-import { GoogleGenAI } from '@google/genai';
+import type { Content, GenerateContentConfig } from '@google/genai';
 import { logger } from '../../../utils/logger';
 import type { AIMessage, AIProvider, GenerateOptions, GenerateResponse } from './base';
+import { getGeminiVertexClient } from './gemini-client';
 
 /**
  * Google Gemini AI Provider
- * 使用 Google 官方 @google/genai SDK
- * 支持 Gemini 2.5 Flash 及其他 Gemini 模型
+ * 使用 Google 官方 @google/genai SDK 通过 Vertex AI 访问 Gemini
  */
 export class GeminiProvider implements AIProvider {
   name = 'gemini';
-  private client: GoogleGenAI;
+  private project: string;
+  private location: string;
   private defaultModel: string;
 
-  constructor(config: { apiKey: string; model: string }) {
-    this.client = new GoogleGenAI({
-      apiKey: config.apiKey,
-    });
+  constructor(config: { project: string; location: string; model: string }) {
+    this.project = config.project;
+    this.location = config.location;
     this.defaultModel = config.model;
   }
 
@@ -23,32 +23,35 @@ export class GeminiProvider implements AIProvider {
     const startTime = Date.now();
 
     try {
-      // 1. 转换消息格式
-      const contents = this.convertMessages(options.messages);
+      const client = getGeminiVertexClient({
+        project: this.project,
+        location: this.location,
+      });
+      const { contents, systemInstruction } = this.convertMessages(options.messages);
 
-      // 2. 构建配置
-      const config = {
+      const config: GenerateContentConfig = {
         temperature: options.temperature ?? 0.7,
         maxOutputTokens: options.maxTokens,
       };
+      if (systemInstruction) {
+        config.systemInstruction = systemInstruction;
+      }
 
-      // 3. 调用 Gemini API
-      const response = await this.client.models.generateContent({
+      const response = await client.models.generateContent({
         model: this.defaultModel,
-        contents: contents,
-        config: config,
+        contents,
+        config,
       });
 
       const duration = Date.now() - startTime;
 
-      // 4. 提取 token 使用量
       const tokensUsed = response.usageMetadata?.totalTokenCount || 0;
-
-      // 5. 提取生成的内容
       const content = response.text || response.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
       logger.info('Gemini Provider 生成完成', {
         model: this.defaultModel,
+        project: this.project,
+        location: this.location,
         tokens: tokensUsed,
         duration: `${duration}ms`,
         promptTokens: response.usageMetadata?.promptTokenCount,
@@ -61,31 +64,69 @@ export class GeminiProvider implements AIProvider {
         model: this.defaultModel,
       };
     } catch (error) {
-      logger.error('Gemini Provider 生成失败', error instanceof Error ? error : undefined);
+      logger.error('Gemini Provider 生成失败', this.extractErrorMeta(error));
       throw error;
     }
   }
 
   /**
-   * 将标准 AIMessage 格式转换为 Gemini API 要求的格式
-   *
-   * 转换规则:
-   * - system/user -> role: 'user'
-   * - assistant -> role: 'model'
-   * - content -> parts: [{ text }]
+   * 将标准 AIMessage 转换为 Gemini API 消息格式。
+   * system 消息通过 systemInstruction 传递，其余消息按 user/model 角色映射。
    */
-  private convertMessages(
-    messages: AIMessage[],
-  ): Array<{ role: string; parts: Array<{ text: string }> }> {
-    return messages.map((msg) => {
-      // Gemini API 使用 'user' 和 'model' 作为角色
-      // system 消息需要转换为 user 消息
-      const role = msg.role === 'assistant' ? 'model' : 'user';
+  private convertMessages(messages: AIMessage[]): {
+    contents: Content[];
+    systemInstruction?: string;
+  } {
+    const systemMessages = messages
+      .filter((msg) => msg.role === 'system')
+      .map((msg) => msg.content.trim())
+      .filter(Boolean);
+    const conversationMessages = messages.filter((msg) => msg.role !== 'system');
 
-      return {
-        role,
-        parts: [{ text: msg.content }],
+    const contents = conversationMessages.map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+
+    if (contents.length === 0) {
+      throw new Error('Gemini 请求至少需要一条非 system 消息');
+    }
+
+    return {
+      contents,
+      systemInstruction: systemMessages.length > 0 ? systemMessages.join('\n\n') : undefined,
+    };
+  }
+
+  private extractErrorMeta(error: unknown): Error | Record<string, unknown> {
+    if (error instanceof Error) {
+      const meta: Record<string, unknown> = {
+        error: error.message,
+        project: this.project,
+        location: this.location,
+        model: this.defaultModel,
       };
-    });
+
+      const maybeError = error as Error & {
+        status?: number;
+        code?: number | string;
+      };
+
+      if (maybeError.status !== undefined) {
+        meta.status = maybeError.status;
+      }
+      if (maybeError.code !== undefined) {
+        meta.code = maybeError.code;
+      }
+
+      return meta;
+    }
+
+    return {
+      error,
+      project: this.project,
+      location: this.location,
+      model: this.defaultModel,
+    };
   }
 }

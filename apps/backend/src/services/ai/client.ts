@@ -32,7 +32,12 @@ class AIClient {
     const providerType = await getConfigValue('ai_provider', env.AI_PROVIDER || 'mock');
     const model = await getConfigValue('ai_model', env.AI_MODEL);
 
-    logger.info('AI Provider 配置', { providerType, model });
+    logger.info('AI Provider 配置', {
+      providerType,
+      model,
+      vertexProject: providerType === 'gemini' ? env.GOOGLE_CLOUD_PROJECT : undefined,
+      vertexLocation: providerType === 'gemini' ? env.GOOGLE_CLOUD_LOCATION : undefined,
+    });
 
     switch (providerType) {
       case 'mock':
@@ -51,12 +56,13 @@ class AIClient {
         });
 
       case 'gemini': {
-        const geminiKey = env.GEMINI_API_KEY || env.AI_API_KEY;
-        if (!geminiKey) {
-          throw new Error('GEMINI_API_KEY or AI_API_KEY is required for Gemini provider');
+        if (!env.GOOGLE_CLOUD_PROJECT) {
+          throw new Error('GOOGLE_CLOUD_PROJECT is required for Gemini Vertex AI provider');
         }
+
         return new GeminiProvider({
-          apiKey: geminiKey,
+          project: env.GOOGLE_CLOUD_PROJECT,
+          location: env.GOOGLE_CLOUD_LOCATION,
           model,
         });
       }

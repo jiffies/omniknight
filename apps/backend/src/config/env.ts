@@ -14,8 +14,9 @@ const envSchema = z.object({
   AI_API_BASE_URL: z.string().url().optional(),
   AI_MODEL: z.string().default('deepseek-chat'),
 
-  // Gemini 专用配置
-  GEMINI_API_KEY: z.string().optional(),
+  // Gemini Vertex AI 配置
+  GOOGLE_CLOUD_PROJECT: z.string().optional(),
+  GOOGLE_CLOUD_LOCATION: z.string().default('global'),
 
   // Web Push VAPID 配置
   VAPID_PUBLIC_KEY: z.string().optional(),

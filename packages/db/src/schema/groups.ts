@@ -29,6 +29,7 @@ export const groups = sqliteTable(
     // 总结配置
     summaryEnabled: integer('summary_enabled', { mode: 'boolean' }).notNull().default(true),
     summaryInterval: integer('summary_interval').notNull().default(6), // 小时
+    summaryStartTime: text('summary_start_time'), // HH:mm，可选的本地调度开始时间
     minMessagesForSummary: integer('min_messages_for_summary').notNull().default(20),
     customPrompt: text('custom_prompt'), // 用户自定义提示词
 

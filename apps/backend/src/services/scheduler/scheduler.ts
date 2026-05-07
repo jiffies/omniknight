@@ -1,7 +1,9 @@
 import { db, groups } from '@omniknight/db';
 import { eq } from 'drizzle-orm';
+import { env } from '../../config/env';
 import { logger } from '../../utils/logger';
 import { createSummaryJob, executeSummaryJob } from './job-helpers';
+import { getMostRecentScheduleAnchor, validateTimeZone } from './timezone-schedule';
 
 /**
  * 定时调度器服务
@@ -22,8 +24,12 @@ class SchedulerService {
       return;
     }
 
+    validateTimeZone(env.SCHEDULER_TIMEZONE);
     this.isRunning = true;
-    logger.info('📅 定时调度器启动', { checkInterval: `${this.checkInterval / 1000}秒` });
+    logger.info('📅 定时调度器启动', {
+      checkInterval: `${this.checkInterval / 1000}秒`,
+      timeZone: env.SCHEDULER_TIMEZONE,
+    });
 
     // 立即执行一次检查
     await this.checkAndSchedule();
@@ -87,10 +93,18 @@ class SchedulerService {
       const now = new Date();
       const lastSummaryAt = group.lastSummaryAt ? new Date(group.lastSummaryAt) : null;
 
-      // 如果没有上次摘要时间，或者距离上次摘要已经超过间隔时间
       const intervalMs = group.summaryInterval * 60 * 60 * 1000; // 转换为毫秒
-      const shouldGenerate =
-        !lastSummaryAt || now.getTime() - lastSummaryAt.getTime() >= intervalMs;
+      const dueAt = group.summaryStartTime
+        ? getMostRecentScheduleAnchor(
+            now,
+            group.summaryStartTime,
+            group.summaryInterval,
+            env.SCHEDULER_TIMEZONE,
+          )
+        : now;
+      const shouldGenerate = group.summaryStartTime
+        ? !lastSummaryAt || lastSummaryAt.getTime() < dueAt.getTime()
+        : !lastSummaryAt || now.getTime() - lastSummaryAt.getTime() >= intervalMs;
 
       if (shouldGenerate) {
         logger.info('🔔 触发定时摘要任务', {
@@ -98,11 +112,14 @@ class SchedulerService {
           groupTitle: group.title,
           lastSummaryAt: lastSummaryAt?.toISOString() || 'never',
           interval: `${group.summaryInterval}小时`,
+          startTime: group.summaryStartTime || 'rolling',
+          dueAt: dueAt.toISOString(),
         });
 
-        // 计算时间范围：上次摘要时间到现在
-        const periodStart = lastSummaryAt || new Date(now.getTime() - intervalMs);
-        const periodEnd = now;
+        const periodEnd = group.summaryStartTime ? dueAt : now;
+        const periodStart = group.summaryStartTime
+          ? new Date(dueAt.getTime() - intervalMs)
+          : lastSummaryAt || new Date(now.getTime() - intervalMs);
 
         // 创建定时任务
         const job = await createSummaryJob(
@@ -129,8 +146,8 @@ class SchedulerService {
           });
         });
 
-        // 更新群组的最后摘要时间
-        await db.update(groups).set({ lastSummaryAt: now }).where(eq(groups.id, group.id));
+        // 更新群组的最后摘要时间，避免下一轮重复创建同一个定时窗口
+        await db.update(groups).set({ lastSummaryAt: periodEnd }).where(eq(groups.id, group.id));
       }
     } catch (error) {
       logger.error('检查群组定时任务失败', {

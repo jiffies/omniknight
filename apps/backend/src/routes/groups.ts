@@ -3,9 +3,34 @@ import { db, groups, summaries, telegramAccounts } from '@omniknight/db';
 import { createGroupSchema, updateGroupSchema } from '@omniknight/shared';
 import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
+import { createSummaryJob, executeSummaryJob } from '../services/scheduler/job-helpers';
 import { logger } from '../utils/logger';
 
 const app = new Hono();
+
+async function createInitialSummaryJob(group: typeof groups.$inferSelect): Promise<void> {
+  const now = new Date();
+  const intervalMs = group.summaryInterval * 60 * 60 * 1000;
+  const periodStart = new Date(now.getTime() - intervalMs);
+  const job = await createSummaryJob(group.id, periodStart, now, 'scheduled');
+
+  await db.update(groups).set({ lastSummaryAt: now }).where(eq(groups.id, group.id));
+
+  logger.info('新建群组初始摘要任务已创建', {
+    groupId: group.id,
+    jobId: job.id,
+    periodStart: periodStart.toISOString(),
+    periodEnd: now.toISOString(),
+  });
+
+  executeSummaryJob(job.id).catch((err) => {
+    logger.error('新建群组初始摘要任务执行失败', {
+      error: err instanceof Error ? err.message : String(err),
+      jobId: job.id,
+      groupId: group.id,
+    });
+  });
+}
 
 // GET /api/groups - 获取所有群组列表
 app.get('/', async (c) => {
@@ -120,6 +145,16 @@ app.post(
         title: group.title,
         accountId: data.accountId,
       });
+
+      try {
+        await createInitialSummaryJob(group);
+      } catch (error) {
+        logger.error('创建新建群组初始摘要任务失败', {
+          error: error instanceof Error ? error.message : String(error),
+          groupId: group.id,
+          title: group.title,
+        });
+      }
 
       return c.json({ data: group }, 201);
     } catch (error) {

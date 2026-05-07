@@ -36,6 +36,7 @@ export function Groups() {
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState({
     summaryInterval: 6,
+    summaryStartTime: '',
     minMessagesForSummary: 20,
     customPrompt: '',
   });
@@ -84,26 +85,16 @@ export function Groups() {
           throw new Error(`No topics found for telegramId: ${telegramId}`);
         }
         return {
+          ...firstTopic,
           id: `virtual-${telegramId}` as unknown as number,
           telegramId,
           title: firstTopic.groupName || '未命名群组',
           groupName: firstTopic.groupName || '未命名群组',
-          type: firstTopic.type,
           isActive: topicList.some((t: GroupWithStats) => t.isActive),
-          accountId: firstTopic.accountId,
-          summaryInterval: firstTopic.summaryInterval,
-          minMessagesForSummary: firstTopic.minMessagesForSummary,
           messageCount: 0,
           summaryCount: 0,
           isVirtual: true,
           topics: topicList,
-          updatedAt: firstTopic.updatedAt,
-          isTopic: firstTopic.isTopic,
-          topicId: firstTopic.topicId,
-          topicName: firstTopic.topicName,
-          customPrompt: firstTopic.customPrompt,
-          createdAt: firstTopic.createdAt,
-          accountInfo: firstTopic.accountInfo,
         };
       },
     );
@@ -145,12 +136,14 @@ export function Groups() {
   const handleEditGroup = (group: {
     id: number;
     summaryInterval: number;
+    summaryStartTime?: string | null;
     minMessagesForSummary: number;
     customPrompt?: string | null;
   }) => {
     setEditingGroupId(group.id);
     setEditFormData({
       summaryInterval: group.summaryInterval,
+      summaryStartTime: group.summaryStartTime || '',
       minMessagesForSummary: group.minMessagesForSummary,
       customPrompt: group.customPrompt || '',
     });
@@ -161,7 +154,10 @@ export function Groups() {
     try {
       const res = await apiClient.api.groups[':id'].$patch({
         param: { id: groupId.toString() },
-        json: editFormData,
+        json: {
+          ...editFormData,
+          summaryStartTime: editFormData.summaryStartTime || null,
+        },
       });
       await handleResponse(res);
       setEditingGroupId(null);
@@ -386,7 +382,7 @@ export function Groups() {
                             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                               <h5 className="text-sm font-medium text-gray-700 mb-3">群组配置</h5>
                               <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                   <div>
                                     <label className="block text-xs text-gray-600 mb-1">
                                       总结间隔（小时）
@@ -408,6 +404,30 @@ export function Groups() {
                                     ) : (
                                       <div className="text-sm text-gray-900 py-2">
                                         每 {group.summaryInterval} 小时
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs text-gray-600 mb-1">
+                                      开始时间
+                                    </label>
+                                    {editingGroupId === group.id ? (
+                                      <input
+                                        type="time"
+                                        value={editFormData.summaryStartTime}
+                                        onChange={(e) =>
+                                          setEditFormData({
+                                            ...editFormData,
+                                            summaryStartTime: e.target.value,
+                                          })
+                                        }
+                                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                                      />
+                                    ) : (
+                                      <div className="text-sm text-gray-900 py-2">
+                                        {group.summaryStartTime
+                                          ? `每天从 ${group.summaryStartTime} 开始`
+                                          : '按间隔滚动'}
                                       </div>
                                     )}
                                   </div>
@@ -556,7 +576,7 @@ export function Groups() {
                                     <h6 className="text-xs font-medium text-gray-700 mb-2">
                                       话题配置
                                     </h6>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                       <div>
                                         <label className="block text-xs text-gray-600 mb-1">
                                           总结间隔（小时）
@@ -578,6 +598,30 @@ export function Groups() {
                                         ) : (
                                           <div className="text-xs text-gray-900 py-1">
                                             每 {topic.summaryInterval} 小时
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs text-gray-600 mb-1">
+                                          开始时间
+                                        </label>
+                                        {editingGroupId === topic.id ? (
+                                          <input
+                                            type="time"
+                                            value={editFormData.summaryStartTime}
+                                            onChange={(e) =>
+                                              setEditFormData({
+                                                ...editFormData,
+                                                summaryStartTime: e.target.value,
+                                              })
+                                            }
+                                            className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                                          />
+                                        ) : (
+                                          <div className="text-xs text-gray-900 py-1">
+                                            {topic.summaryStartTime
+                                              ? `每天从 ${topic.summaryStartTime} 开始`
+                                              : '按间隔滚动'}
                                           </div>
                                         )}
                                       </div>

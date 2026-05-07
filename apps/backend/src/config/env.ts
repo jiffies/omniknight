@@ -7,6 +7,7 @@ const envSchema = z.object({
   DATABASE_PATH: z.string().default('./data/db.sqlite'),
   TELEGRAM_API_ID: z.string(),
   TELEGRAM_API_HASH: z.string(),
+  SCHEDULER_TIMEZONE: z.string().default('Asia/Shanghai'),
 
   // AI Provider 配置
   AI_PROVIDER: z.enum(['mock', 'openai', 'deepseek', 'gemini', 'custom']).default('mock'),

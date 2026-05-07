@@ -50,6 +50,13 @@
       "when": 1765817185169,
       "tag": "0006_rare_medusa",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1778119551191,
+      "tag": "0007_shallow_aaron_stack",
+      "breakpoints": true
     }
   ]
 }

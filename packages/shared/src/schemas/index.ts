@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+export const summaryStartTimeSchema = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, '开始时间必须是 HH:mm 格式');
+
 // 群组相关 Schema
 export const createGroupSchema = z.object({
   telegramId: z.string(),
@@ -18,6 +22,7 @@ export const updateGroupSchema = z.object({
   isActive: z.boolean().optional(),
   summaryEnabled: z.boolean().optional(),
   summaryInterval: z.number().min(1).max(24).optional(),
+  summaryStartTime: summaryStartTimeSchema.nullable().optional(),
   minMessagesForSummary: z.number().min(1).optional(),
   customPrompt: z.string().optional(), // 用户自定义提示词
 });

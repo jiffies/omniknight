@@ -11,6 +11,7 @@ export function Tasks() {
   const { data: groupsData } = useGroups();
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [retryingTaskId, setRetryingTaskId] = useState<number | null>(null);
   const pageSize = 10;
 
   const tasks = tasksData?.data || [];
@@ -142,6 +143,22 @@ export function Tasks() {
     }
   };
 
+  const handleRetryTask = async (taskId: number) => {
+    setRetryingTaskId(taskId);
+
+    try {
+      const res = await fetch(`/api/summaries/jobs/${taskId}/retry`, { method: 'POST' });
+      await handleResponse(res);
+      setCurrentPage(1);
+      refetch();
+      alert('已创建重试任务');
+    } catch (err) {
+      alert(`重试失败: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setRetryingTaskId(null);
+    }
+  };
+
   return (
     <div>
       <div className="px-4 sm:px-0">
@@ -251,6 +268,19 @@ export function Tasks() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                           <div className="flex gap-2">
+                            {task.status === 'failed' && (
+                              <button
+                                type="button"
+                                disabled={retryingTaskId === task.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRetryTask(task.id);
+                                }}
+                                className="text-indigo-600 hover:text-indigo-900 disabled:text-gray-400 disabled:cursor-not-allowed"
+                              >
+                                {retryingTaskId === task.id ? '重试中...' : '重试'}
+                              </button>
+                            )}
                             {task.status === 'completed' && (
                               <button
                                 type="button"

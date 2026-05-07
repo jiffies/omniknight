@@ -78,6 +78,57 @@ app.get('/jobs/:id', async (c) => {
   return c.json({ data: job[0] });
 });
 
+// POST /api/summaries/jobs/:id/retry - 使用原任务参数重试失败任务
+app.post('/jobs/:id/retry', async (c) => {
+  const jobId = Number.parseInt(c.req.param('id'), 10);
+
+  try {
+    const [originalJob] = await db
+      .select()
+      .from(summaryJobs)
+      .where(eq(summaryJobs.id, jobId))
+      .limit(1);
+
+    if (!originalJob) {
+      return c.json({ error: 'Job not found' }, 404);
+    }
+
+    if (originalJob.status !== 'failed') {
+      return c.json({ error: 'Only failed jobs can be retried' }, 400);
+    }
+
+    const retryJob = await createSummaryJob(
+      originalJob.groupId,
+      originalJob.periodStart,
+      originalJob.periodEnd,
+      originalJob.taskType,
+    );
+
+    executeSummaryJob(retryJob.id).catch((err) => {
+      logger.error('重试任务执行失败', {
+        error: err instanceof Error ? err.message : String(err),
+        originalJobId: originalJob.id,
+        retryJobId: retryJob.id,
+        groupId: originalJob.groupId,
+      });
+    });
+
+    logger.info('失败任务已创建重试任务', {
+      originalJobId: originalJob.id,
+      retryJobId: retryJob.id,
+      groupId: originalJob.groupId,
+      taskType: originalJob.taskType,
+      periodStart: originalJob.periodStart.toISOString(),
+      periodEnd: originalJob.periodEnd.toISOString(),
+    });
+
+    return c.json({ data: { jobId: retryJob.id } }, 202);
+  } catch (error) {
+    logger.error('创建重试任务失败', error instanceof Error ? error : undefined);
+    return c.json({ error: 'Failed to retry job' }, 500);
+  }
+});
+
 // DELETE /api/summaries/jobs/:id - 删除任务
 app.delete('/jobs/:id', async (c) => {
   const jobId = Number.parseInt(c.req.param('id'), 10);
